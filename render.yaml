@@ -1,0 +1,44 @@
+services:
+  # Java API
+  - type: web
+    name: codeinsight-java-api
+    env: docker
+    dockerfilePath: ./backend/java-api/Dockerfile
+    dockerContext: ./backend/java-api
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: PYTHON_WORKER_URL
+        value: https://codeinsight-python-worker.onrender.com
+
+  # Python FastAPI Worker
+  - type: web
+    name: codeinsight-python-worker
+    env: docker
+    dockerfilePath: ./backend/python-worker/Dockerfile
+    dockerContext: ./backend/python-worker
+    plan: starter
+    region: oregon
+    branch: main
+    healthCheckPath: /health
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        sync: false

@@ -1,0 +1,16 @@
+{
+  "name": "code-insight",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Powered Code Review and Debugging Platform",
+  "scripts": {
+    "frontend": "cd frontend && npm run dev",
+    "install-all": "cd frontend && npm install && cd ../backend/python-worker && pip install -r requirements.txt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/preetugc1234/codeinsight.git"
+  },
+  "author": "Code Insight Team",
+  "license": "MIT"
+}
