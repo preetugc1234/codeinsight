@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "name": "CodeInsight_SystemBrain_v1",
+    "version": "1.0.0",
+    "goal": "Deliver production-grade, scalable, secure code assistance with minimal token usage",
+    "token_policy": {
+      "mode": "minimal_context_diff",
+      "max_prompt_tokens_default": 3000,
+      "max_output_tokens_default": 4096,
+      "max_total_context": 200000
+    }
+  },
+
+  "roles": {
+    "code_reviewer": {
+      "title": "Expert Code Reviewer",
+      "system_prompt": "You are an expert senior software reviewer focused on code correctness, performance, and maintainability.\nAnalyze only the provided snippet. Avoid reprinting unchanged code. Suggest only critical improvements.\n\nPrioritize scalability, readability, and security.\nMinimize token usage by showing only diffs or minimal patches.\n\nOUTPUT FORMAT:\n✅ Issues Found:\n⚙️ Improvements:\n💡 Example Fix (short patch only if required):",
+      "max_tokens": 2048,
+      "temperature": 0.7
+    },
+
+    "debug_doctor": {
+      "title": "Debug Doctor",
+      "system_prompt": "You are 'Debug Doctor' — a professional system troubleshooter.\nGiven a file or error trace, identify the root cause and provide a minimal working fix.\nNever rewrite full code unless necessary.\n\nOUTPUT (precise & short):\n🧩 Root Cause:\n🔍 Explanation (2 lines max):\n🧠 Fix (only changed lines or logic summary):\n✅ Verification Steps:",
+      "max_tokens": 2048,
+      "temperature": 0.5
+    },
+
+    "architecture_generator": {
+      "title": "Principal Software Architect",
+      "system_prompt": "You are a principal software architect generating production-grade architecture and code structure.\n\nTASKS:\n1. Generate directory & service structure\n2. Show data flow diagram in ASCII\n3. Give scalable component interactions\n4. Include critical security, error handling, and performance notes\n\nOUTPUT FORMAT:\n🏗️ System Summary:\n⚙️ Architecture Diagram:\n🧩 Modules & Responsibilities:\n🔒 Security / Scaling Notes:",
+      "max_tokens": 4096,
+      "temperature": 0.8
+    }
+  },
+
+  "prompt_templates": {
+    "code_review": {
+      "user_template": "Language: {language}\nFile Name: {filename}\nCode Snippet:\n```{language}\n{code}\n```\n\nREVIEW OBJECTIVES:\n1. Detect syntax or logical errors\n2. Suggest micro-optimizations\n3. Ensure clean structure and consistent naming\n4. Identify scalability or security risks"
+    },
+
+    "debug": {
+      "user_template": "File name: {filename}\nCode context:\n```\n{code}\n```\n\nError message/log:\n```\n{error_log}\n```"
+    },
+
+    "architecture": {
+      "user_template": "User goal: {user_request}\nTech stack: {stack}\nTarget scale: {scale}\nDatabase: {database}"
+    }
+  },
+
+  "token_optimization": {
+    "strategies": [
+      "Send only code diffs, not full files",
+      "Compress system prompts to essentials",
+      "Cache repeated prompts (Redis, 24h TTL)",
+      "Batch small reviews when possible",
+      "Use structured JSON output for parsing"
+    ],
+    "cache_ttl": {
+      "code_review": 86400,
+      "debug": 3600,
+      "architecture": 604800
+    }
+  },
+
+  "security_filters": {
+    "redact_patterns": [
+      "API_KEY",
+      "SECRET",
+      "PASSWORD",
+      "TOKEN",
+      "PRIVATE_KEY"
+    ],
+    "max_code_size": 50000,
+    "allowed_languages": [
+      "javascript",
+      "typescript",
+      "python",
+      "java",
+      "go",
+      "rust",
+      "c",
+      "cpp",
+      "csharp",
+      "ruby",
+      "php"
+    ]
+  }
+}
