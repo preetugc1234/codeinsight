@@ -61,7 +61,7 @@ public class RedisService {
         hashCommands.hdel(queueKey, jobId);
     }
 
-    // Rate limiting - token bucket
+    // Rate limiting - Token Bucket Algorithm
     public boolean checkRateLimit(String userId, int maxRequests, Duration window) {
         String key = "ratelimit:" + userId;
         String count = stringCommands.get(key);
@@ -78,6 +78,70 @@ public class RedisService {
 
         stringCommands.incr(key);
         return true;
+    }
+
+    /**
+     * Advanced rate limiting with sliding window
+     * Returns true if request is allowed, false if rate limit exceeded
+     */
+    public boolean allowRequest(String userId, int maxRequests) {
+        String key = "ratelimit:sliding:" + userId;
+        long now = System.currentTimeMillis();
+        long windowStart = now - 60000; // 1 minute window
+
+        try {
+            // Get current count in sliding window
+            String countStr = stringCommands.get(key);
+            int currentCount = countStr != null ? Integer.parseInt(countStr) : 0;
+
+            if (currentCount >= maxRequests) {
+                return false;
+            }
+
+            // Increment counter
+            if (countStr == null) {
+                stringCommands.setex(key, 60, "1"); // 60 seconds TTL
+            } else {
+                stringCommands.incr(key);
+            }
+
+            return true;
+        } catch (Exception e) {
+            // On Redis error, allow request (fail-open for availability)
+            System.err.println("Rate limit check failed: " + e.getMessage());
+            return true;
+        }
+    }
+
+    /**
+     * Get remaining requests for user
+     */
+    public int getRemainingRequests(String userId, int maxRequests) {
+        String key = "ratelimit:sliding:" + userId;
+        String countStr = stringCommands.get(key);
+        int currentCount = countStr != null ? Integer.parseInt(countStr) : 0;
+        return Math.max(0, maxRequests - currentCount);
+    }
+
+    /**
+     * Get TTL for rate limit key (seconds until reset)
+     */
+    public long getRateLimitTTL(String userId) {
+        String key = "ratelimit:sliding:" + userId;
+        try {
+            Long ttl = keyCommands.ttl(key);
+            return ttl != null ? ttl : 60;
+        } catch (Exception e) {
+            return 60; // Default 60 seconds
+        }
+    }
+
+    /**
+     * Reset rate limit for a user (admin function)
+     */
+    public void resetRateLimit(String userId) {
+        String key = "ratelimit:sliding:" + userId;
+        keyCommands.del(key);
     }
 
     // Simple JSON conversion (you can use Jackson later)

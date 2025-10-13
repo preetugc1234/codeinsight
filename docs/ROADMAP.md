@@ -54,19 +54,19 @@ This roadmap takes you from **infrastructure setup to live production** with pay
 **Goal**: Implement core API endpoints and database connections
 
 #### Tasks:
-- [ ] **Java API: MongoDB Connection** (1 hour)
+- [x] **Java API: MongoDB Connection** (1 hour) ✅ COMPLETED
   - Configure MongoDB client
   - Create connection pool
   - Test read/write operations
   - Implement error handling
 
-- [ ] **Java API: Redis Connection** (1 hour)
+- [x] **Java API: Redis Connection** (1 hour) ✅ COMPLETED
   - Configure Upstash Redis client
   - Test cache operations
   - Implement Redis Streams for job queue
   - Test enqueue/dequeue
 
-- [ ] **Java API: Core Endpoints** (2 hours)
+- [x] **Java API: Core Endpoints** (2 hours) ✅ COMPLETED
   - `POST /api/auth/login` - Supabase integration
   - `POST /api/review` - Create review job
   - `GET /api/job/:id` - Get job status
@@ -84,25 +84,25 @@ This roadmap takes you from **infrastructure setup to live production** with pay
 **Goal**: Complete authentication system
 
 #### Tasks:
-- [ ] **Supabase Authentication Setup** (1 hour)
+- [x] **Supabase Authentication Setup** (1 hour) ✅ COMPLETED
   - Configure email/password auth
   - Set up OAuth providers (Google, GitHub)
   - Configure redirect URLs
   - Test auth flows
 
-- [ ] **Java API: JWT Validation** (1.5 hours)
+- [x] **Java API: JWT Validation** (1.5 hours) ✅ COMPLETED
   - Implement JWT verification middleware
   - Validate Supabase tokens
   - Extract user ID from token
   - Add to all protected endpoints
 
-- [ ] **MongoDB: User Schema** (1 hour)
+- [x] **MongoDB: User Schema** (1 hour) ✅ COMPLETED
   - Create `users` collection
   - Schema: user_id, plan, api_key, quota, created_at
   - Implement CRUD operations
   - Add indexes for performance
 
-- [ ] **Rate Limiting System** (30 min)
+- [x] **Rate Limiting System** (30 min) ✅ COMPLETED
   - Implement token bucket in Redis
   - Per-user request limits
   - Return 429 with retry-after header
@@ -111,19 +111,19 @@ This roadmap takes you from **infrastructure setup to live production** with pay
 **Goal**: Build frontend authentication UI
 
 #### Tasks:
-- [ ] **Frontend: Auth Pages** (2 hours)
+- [x] **Frontend: Auth Pages** (2 hours) ✅ COMPLETED
   - Login page with Supabase
   - Signup page with validation
   - Password reset flow
   - OAuth buttons (Google/GitHub)
 
-- [ ] **Frontend: Auth State Management** (1 hour)
+- [x] **Frontend: Auth State Management** (1 hour) ✅ COMPLETED
   - Zustand store for auth state
   - Persist session in localStorage
   - Auto-refresh JWT tokens
   - Protected route wrapper
 
-- [ ] **Frontend: Dashboard Layout** (1 hour)
+- [x] **Frontend: Dashboard Layout** (1 hour) ✅ COMPLETED
   - Navigation bar with user menu
   - Sidebar navigation
   - User profile dropdown
@@ -289,19 +289,19 @@ This roadmap takes you from **infrastructure setup to live production** with pay
 
 ---
 
-## 📅 **Day 6: Stripe Integration & Payment System**
+## 📅 **Day 6: Razorpay Integration & Payment System**
 
 ### Morning Session (4 hours)
 **Goal**: Complete payment integration
 
 #### Tasks:
-- [ ] **Stripe Setup** (1 hour)
+- [ ] **Razorpay Setup** (1 hour)
   - Create Stripe account
   - Configure products & prices
   - Get API keys
   - Configure webhook endpoint
 
-- [ ] **Java API: Stripe Integration** (2 hours)
+- [ ] **Java API: Razorpay Integration** (2 hours)
   - Add Stripe SDK
   - `POST /api/checkout` - Create checkout session
   - `POST /api/webhook/stripe` - Handle webhooks
