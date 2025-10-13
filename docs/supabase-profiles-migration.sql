@@ -15,6 +15,11 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist (to allow re-running this script)
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+
 -- Create policies
 -- Users can view their own profile
 CREATE POLICY "Users can view own profile"
@@ -45,6 +50,9 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Drop trigger if exists (to allow re-running this script)
+DROP TRIGGER IF EXISTS set_updated_at ON public.profiles;
 
 -- Create trigger to automatically update updated_at
 CREATE TRIGGER set_updated_at
