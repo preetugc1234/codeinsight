@@ -1152,7 +1152,7 @@ Scalable Architecture: Handles 100K+ concurrent requests per user, cache + async
 
 Credentials- 
 
-1. openrouter anthropic/claude-sonnet-4.5 - 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
+1. openrouter anthropic/claude-sonnet-4.5 
 
 parameters to help you- import requests
 import json
@@ -1211,3 +1211,5 @@ REDIS_PASSWORD (if applicable)
 
 OAuth / JWT secrets if using Supabase Auth (CLIENT_ID, CLIENT_SECRET)
 WebSocket secret (optional, for secure notifications)
+
+I will use razorpay instead of stripe cause stripe is banned in india.

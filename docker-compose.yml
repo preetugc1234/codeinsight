@@ -21,7 +21,7 @@ services:
       - "8080:8080"
     environment:
       - MONGODB_URI=${MONGODB_URI}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=rediss://default:ASXaAAImcDJmYzFkZDk2YzRhYmI0MTNhOGVlOTI5NjZkYjViNzlkYnAyOTY5MA@enormous-crab-9690.upstash.io:6379
       - PYTHON_WORKER_URL=http://python-worker:8000
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
@@ -39,7 +39,7 @@ services:
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
       - MONGODB_URI=${MONGODB_URI}
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=rediss://default:ASXaAAImcDJmYzFkZDk2YzRhYmI0MTNhOGVlOTI5NjZkYjViNzlkYnAyOTY5MA@enormous-crab-9690.upstash.io:6379
     depends_on:
       - redis
 

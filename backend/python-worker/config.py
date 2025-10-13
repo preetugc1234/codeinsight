@@ -15,9 +15,8 @@ class Settings(BaseSettings):
     mongodb_uri: str = "mongodb+srv://Preet1234:Preet1246@ugc.qqqbt5d.mongodb.net/?retryWrites=true&w=majority&appName=UGC"
     mongodb_db: str = "codeinsight"
 
-    # Redis
-    redis_url: str = "redis://localhost:6379"
-    redis_password: Optional[str] = None
+    # Redis (Upstash - Production)
+    redis_url: str = "rediss://default:ASXaAAImcDJmYzFkZDk2YzRhYmI0MTNhOGVlOTI5NjZkYjViNzlkYnAyOTY5MA@enormous-crab-9690.upstash.io:6379"
 
     # Rate Limiting
     token_budget_lite: int = 200000
