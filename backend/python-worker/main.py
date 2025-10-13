@@ -4,13 +4,32 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+
+from services.claude_service import claude_service
+from services.prompt_service import prompt_service
+from services.cache_service import cache_service
 
 load_dotenv()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Startup and shutdown events
+    """
+    # Startup
+    print("🚀 Starting Code Insight AI Worker...")
+    await cache_service.connect()
+    yield
+    # Shutdown
+    print("👋 Shutting down Code Insight AI Worker...")
+    await cache_service.disconnect()
+
 app = FastAPI(
     title="Code Insight AI Worker",
-    description="Python FastAPI worker for AI orchestration",
-    version="1.0.0"
+    description="Python FastAPI worker for AI orchestration with Claude Sonnet 4.5",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS
@@ -60,45 +79,179 @@ async def health():
 async def process_review(request: ReviewRequest):
     """
     Process code review request using Claude Sonnet 4.5
+    With caching and security checks
     """
-    # TODO: Implement Claude integration
-    # TODO: Fetch embeddings from Supabase pgvector
-    # TODO: Run linters/static analysis
-    # TODO: Call Claude API
-    # TODO: Cache result in Redis
+    try:
+        # 1. Security checks
+        security_check = prompt_service.check_security_filters(request.file_content)
+        if not security_check["safe"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Security check failed: {', '.join(security_check['issues'])}"
+            )
 
-    return {
-        "job_id": "temp-job-id",
-        "status": "processing",
-        "message": "Review job received"
-    }
+        # 2. Generate cache key
+        cache_key = cache_service.generate_cache_key(
+            prompt=f"review_{request.language}_{request.file_path}",
+            context=request.file_content
+        )
+
+        # 3. Check cache first
+        cached_response = await cache_service.get(cache_key)
+        if cached_response:
+            return {
+                "success": True,
+                "cached": True,
+                **cached_response
+            }
+
+        # 4. Call Claude for code review
+        result = await claude_service.code_review(
+            code=request.file_content,
+            language=request.language,
+            filename=request.file_path
+        )
+
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=500,
+                detail=f"AI service error: {result.get('error')}"
+            )
+
+        # 5. Cache the result
+        ttl = prompt_service.get_cache_ttl("code_review")
+        await cache_service.set(cache_key, result, ttl)
+
+        return {
+            "success": True,
+            "cached": False,
+            **result
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/process-debug")
 async def process_debug(request: DebugRequest):
     """
     Debug Doctor - analyze and fix runtime errors
+    With caching
     """
-    # TODO: Implement debug analysis
-    # TODO: Run in sandbox
-    # TODO: Generate fix suggestions
+    try:
+        # 1. Generate cache key
+        cache_key = cache_service.generate_cache_key(
+            prompt=f"debug_{request.file_name}",
+            context=f"{request.code}||{request.error_log}"
+        )
 
-    return {
-        "root_cause": "Example error",
-        "fix": "Example fix",
-        "verification_steps": ["Run tests"]
-    }
+        # 2. Check cache first
+        cached_response = await cache_service.get(cache_key)
+        if cached_response:
+            return {
+                "success": True,
+                "cached": True,
+                **cached_response
+            }
+
+        # 3. Call Claude for debugging
+        result = await claude_service.debug_doctor(
+            filename=request.file_name,
+            code=request.code,
+            error_log=request.error_log or "No error log provided"
+        )
+
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=500,
+                detail=f"AI service error: {result.get('error')}"
+            )
+
+        # 4. Cache the result
+        ttl = prompt_service.get_cache_ttl("debug")
+        await cache_service.set(cache_key, result, ttl)
+
+        return {
+            "success": True,
+            "cached": False,
+            **result
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate-architecture")
 async def generate_architecture(request: ArchitectureRequest):
     """
     Generate system architecture design
+    With caching
     """
-    # TODO: Implement architecture generation
+    try:
+        # 1. Generate cache key
+        cache_key = cache_service.generate_cache_key(
+            prompt=f"arch_{request.tech_stack}_{request.scale}",
+            context=request.user_request
+        )
 
+        # 2. Check cache first
+        cached_response = await cache_service.get(cache_key)
+        if cached_response:
+            return {
+                "success": True,
+                "cached": True,
+                **cached_response
+            }
+
+        # 3. Call Claude for architecture generation
+        result = await claude_service.generate_architecture(
+            user_request=request.user_request,
+            stack=request.tech_stack,
+            scale=request.scale,
+            database=request.database
+        )
+
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=500,
+                detail=f"AI service error: {result.get('error')}"
+            )
+
+        # 4. Cache the result
+        ttl = prompt_service.get_cache_ttl("architecture")
+        await cache_service.set(cache_key, result, ttl)
+
+        return {
+            "success": True,
+            "cached": False,
+            **result
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/cache/stats")
+async def get_cache_stats():
+    """
+    Get cache statistics
+    """
+    stats = await cache_service.get_stats()
+    return stats
+
+@app.post("/cache/clear")
+async def clear_cache():
+    """
+    Clear all cached prompts (admin only)
+    """
+    deleted = await cache_service.clear_all_cache()
     return {
-        "system_summary": "Architecture summary",
-        "diagram": "ASCII diagram",
-        "modules": []
+        "success": True,
+        "deleted_count": deleted,
+        "message": f"Cleared {deleted} cached entries"
     }
 
 if __name__ == "__main__":
