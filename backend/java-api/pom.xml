@@ -6,6 +6,7 @@
   <groupId>com.codeinsight</groupId>
   <artifactId>java-api</artifactId>
   <version>1.0.0</version>
+  <packaging>jar</packaging>
 
   <properties>
     <compiler-plugin.version>3.11.0</compiler-plugin.version>
@@ -70,6 +71,14 @@
 
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${compiler-plugin.version}</version>
+        <configuration>
+          <release>${maven.compiler.release}</release>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>io.quarkus.platform</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
