@@ -1,29 +1,31 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
 
 class Settings(BaseSettings):
-    # OpenRouter / Claude
-    openrouter_api_key: str = "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"
+    # OpenRouter / Claude - MUST be set via environment variables
+    openrouter_api_key: str
     claude_model: str = "anthropic/claude-sonnet-4.5"
     openrouter_url: str = "https://openrouter.ai/api/v1/chat/completions"
 
-    # Supabase
-    supabase_url: str = "https://cblgjjbpfpimrrpjlkhp.supabase.co"
-    supabase_service_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNibGdqamJwZnBpbXJycGpsa2hwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MDIzODI1MSwiZXhwIjoyMDc1ODE0MjUxfQ.NRyx6fnUD4B3z4hwbVH1AWKGUI5BRld21RS_kawprJ4"
+    # Supabase - MUST be set via environment variables
+    supabase_url: str
+    supabase_service_key: str
 
-    # MongoDB
-    mongodb_uri: str = "mongodb+srv://Preet1234:Preet1246@ugc.qqqbt5d.mongodb.net/?retryWrites=true&w=majority&appName=UGC"
+    # MongoDB - MUST be set via environment variables
+    mongodb_uri: str
     mongodb_db: str = "codeinsight"
 
-    # Redis (Upstash - Production)
-    redis_url: str = "rediss://default:ASXaAAImcDJmYzFkZDk2YzRhYmI0MTNhOGVlOTI5NjZkYjViNzlkYnAyOTY5MA@enormous-crab-9690.upstash.io:6379"
+    # Redis - MUST be set via environment variables
+    redis_url: str
 
-    # Rate Limiting
+    # Rate Limiting (defaults, can be overridden)
     token_budget_lite: int = 200000
     token_budget_pro: int = 500000
     token_budget_business: int = 4000000
 
     class Config:
         env_file = ".env"
+        case_sensitive = False
 
 settings = Settings()
