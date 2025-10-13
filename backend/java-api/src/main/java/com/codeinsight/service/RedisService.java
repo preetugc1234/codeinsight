@@ -41,7 +41,7 @@ public class RedisService {
     }
 
     public boolean exists(String key) {
-        return keyCommands.exists(key) > 0;
+        return keyCommands.exists(key);
     }
 
     // Hash operations for job queue
