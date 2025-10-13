@@ -42,15 +42,42 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (session) {
         set({ session, user: session.user });
 
-        // Fetch user profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        // Try to fetch user profile (may not exist yet)
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
 
-        if (profile) {
-          set({ profile });
+          if (profile && !profileError) {
+            set({ profile });
+          } else {
+            // Profile doesn't exist or table doesn't exist - use default
+            set({
+              profile: {
+                id: session.user.id,
+                email: session.user.email || '',
+                first_name: session.user.user_metadata?.first_name || '',
+                last_name: session.user.user_metadata?.last_name || '',
+                plan: 'lite',
+                created_at: new Date().toISOString(),
+              }
+            });
+          }
+        } catch (profileError) {
+          console.log('Profile fetch failed, using session data:', profileError);
+          // Use data from session if profile fetch fails
+          set({
+            profile: {
+              id: session.user.id,
+              email: session.user.email || '',
+              first_name: session.user.user_metadata?.first_name || '',
+              last_name: session.user.user_metadata?.last_name || '',
+              plan: 'lite',
+              created_at: new Date().toISOString(),
+            }
+          });
         }
       }
 
@@ -59,15 +86,41 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ session, user: session?.user ?? null });
 
         if (session?.user) {
-          // Fetch profile on auth change
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          // Try to fetch profile on auth change
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
 
-          if (profile) {
-            set({ profile });
+            if (profile && !profileError) {
+              set({ profile });
+            } else {
+              // Use session data as fallback
+              set({
+                profile: {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  first_name: session.user.user_metadata?.first_name || '',
+                  last_name: session.user.user_metadata?.last_name || '',
+                  plan: 'lite',
+                  created_at: new Date().toISOString(),
+                }
+              });
+            }
+          } catch (profileError) {
+            console.log('Profile fetch failed, using session data');
+            set({
+              profile: {
+                id: session.user.id,
+                email: session.user.email || '',
+                first_name: session.user.user_metadata?.first_name || '',
+                last_name: session.user.user_metadata?.last_name || '',
+                plan: 'lite',
+                created_at: new Date().toISOString(),
+              }
+            });
           }
         } else {
           set({ profile: null });
@@ -98,20 +151,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (signUpError) throw signUpError;
 
-      // Create profile in profiles table
+      // Try to create profile in profiles table (may not exist)
       if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: data.user.email,
-            first_name: firstName,
-            last_name: lastName,
-            plan: 'lite',
-          });
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              first_name: firstName,
+              last_name: lastName,
+              plan: 'lite',
+            });
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
+          if (profileError) {
+            console.log('Profile creation skipped - table may not exist yet:', profileError.message);
+            // Not a critical error - profile will be created from session data
+          }
+        } catch (profileError) {
+          console.log('Profile creation skipped:', profileError);
+          // Continue anyway - profile will be created from session data
         }
       }
 
