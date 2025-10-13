@@ -3,10 +3,27 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { useEffect } from 'react';
 
 export default function Home() {
   const router = useRouter();
   const { user } = useAuthStore();
+
+  // Handle auth token in URL hash (after Supabase redirect)
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+
+    if (accessToken) {
+      // Clear the hash from URL
+      window.history.replaceState(null, '', window.location.pathname);
+      // Redirect to dashboard (user will be set by auth listener)
+      router.push('/dashboard');
+    } else if (user) {
+      // If user is already logged in, redirect to dashboard
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const handleGetStarted = () => {
     if (user) {
