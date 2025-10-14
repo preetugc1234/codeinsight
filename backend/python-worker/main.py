@@ -319,11 +319,17 @@ async def enqueue_job(
     file_path: Optional[str] = None,
     file_content: Optional[str] = None,
     language: Optional[str] = None,
-    repo_id: Optional[str] = None
+    repo_id: Optional[str] = None,
+    error_log: Optional[str] = None
 ):
     """
     Enqueue a new job to Redis Streams
     Job will be picked up by worker pool
+
+    Supports:
+    - job_type="review": Code review with linters + Claude
+    - job_type="debug": Debug Doctor with stack trace analysis + Claude
+    - job_type="architecture": System architecture generation
     """
     try:
         # Create job in MongoDB
@@ -344,7 +350,8 @@ async def enqueue_job(
             "file_path": file_path,
             "file_content": file_content,
             "language": language,
-            "repo_id": repo_id
+            "repo_id": repo_id,
+            "error_log": error_log  # For debug jobs
         }
 
         message_id = await queue_service.enqueue_job(job_data)

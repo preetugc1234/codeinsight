@@ -104,6 +104,7 @@ export async function enqueueJob(params: {
   file_content?: string;
   language?: string;
   repo_id?: string;
+  error_log?: string;  // For debug jobs
 }): Promise<{ success: boolean; job_id: string; message_id: string; status: string }> {
   const response = await fetch(`${PYTHON_WORKER_URL}/jobs/enqueue`, {
     method: 'POST',
