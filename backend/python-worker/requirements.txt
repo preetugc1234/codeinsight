@@ -13,3 +13,4 @@ asyncpg==0.29.0
 pgvector==0.2.5
 tenacity==8.2.3
 tiktoken==0.5.2
+websockets==12.0

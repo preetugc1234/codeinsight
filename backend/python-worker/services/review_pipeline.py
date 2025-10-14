@@ -11,6 +11,7 @@ from services.claude_service import claude_service
 from services.prompt_service import prompt_service
 from services.cache_service import cache_service
 from services.mongodb_service import mongodb_service
+from services.websocket_service import websocket_manager
 
 class ReviewPipeline:
     """
@@ -64,6 +65,14 @@ class ReviewPipeline:
 
             # Update job status to processing
             await mongodb_service.update_job_status(job_id, "processing")
+
+            # Notify via WebSocket
+            await websocket_manager.notify_job_update(
+                job_id=job_id,
+                user_id=user_id,
+                status="processing",
+                data={"message": "Starting code review..."}
+            )
 
             # ==================== STEP 1: SECURITY CHECKS ====================
             print("🔒 Step 1: Running security checks...")
@@ -244,6 +253,19 @@ class ReviewPipeline:
             print(f"   Cost: ${estimated_cost:.4f}")
             print(f"   Cached: No")
             print(f"{'='*60}\n")
+
+            # Notify via WebSocket - Job completed
+            await websocket_manager.notify_job_update(
+                job_id=job_id,
+                user_id=user_id,
+                status="completed",
+                data={
+                    "message": "Code review completed!",
+                    "tokens_used": tokens_used.get("total_tokens", 0),
+                    "estimated_cost": estimated_cost,
+                    "elapsed_time": elapsed
+                }
+            )
 
             return True
 

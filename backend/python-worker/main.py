@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 import os
 import asyncio
+import json
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
@@ -13,6 +14,7 @@ from services.cache_service import cache_service
 from services.mongodb_service import mongodb_service
 from services.queue_service import queue_service
 from services.review_pipeline import review_pipeline
+from services.websocket_service import websocket_manager
 
 load_dotenv()
 
@@ -398,6 +400,71 @@ async def get_system_stats():
         "cache": cache_stats,
         "queue": queue_info,
         "status": "healthy"
+    }
+
+# ==================== WEBSOCKET ENDPOINTS ====================
+
+@app.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """
+    WebSocket endpoint for real-time job status updates
+    Following prompt.md line 222: "notify client via WebSocket"
+
+    Usage:
+    - Client connects: ws://host/ws/{user_id}
+    - Client can subscribe to specific jobs
+    - Receives real-time updates when job status changes
+    """
+    await websocket_manager.connect(websocket, user_id)
+
+    try:
+        while True:
+            # Receive messages from client
+            data = await websocket.receive_text()
+            message = json.loads(data)
+
+            # Handle different message types
+            if message.get("type") == "subscribe":
+                # Subscribe to specific job updates
+                job_id = message.get("job_id")
+                if job_id:
+                    await websocket_manager.subscribe_to_job(websocket, job_id)
+                    await websocket_manager.send_personal_message({
+                        "type": "subscribed",
+                        "job_id": job_id
+                    }, websocket)
+
+            elif message.get("type") == "unsubscribe":
+                # Unsubscribe from job updates
+                job_id = message.get("job_id")
+                if job_id:
+                    await websocket_manager.unsubscribe_from_job(websocket, job_id)
+                    await websocket_manager.send_personal_message({
+                        "type": "unsubscribed",
+                        "job_id": job_id
+                    }, websocket)
+
+            elif message.get("type") == "ping":
+                # Keepalive ping
+                await websocket_manager.send_personal_message({
+                    "type": "pong"
+                }, websocket)
+
+    except WebSocketDisconnect:
+        await websocket_manager.disconnect(websocket, user_id)
+    except Exception as e:
+        print(f"❌ WebSocket error: {e}")
+        await websocket_manager.disconnect(websocket, user_id)
+
+@app.get("/ws/connections")
+async def get_websocket_connections():
+    """
+    Get WebSocket connection statistics (admin only)
+    """
+    total_connections = await websocket_manager.get_connection_count()
+    return {
+        "total_connections": total_connections,
+        "active_users": len(websocket_manager.active_connections)
     }
 
 if __name__ == "__main__":

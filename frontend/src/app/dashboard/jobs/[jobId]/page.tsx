@@ -5,16 +5,22 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getJob, type Job } from '@/lib/api/pythonWorker';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { useAuthStore } from '@/store/authStore';
 
 function JobStatusContent() {
   const params = useParams();
   const router = useRouter();
   const jobId = params.jobId as string;
+  const { user } = useAuthStore();
 
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+
+  // WebSocket for real-time updates
+  const { isConnected, lastMessage, subscribeToJob, unsubscribeFromJob } = useWebSocket(user?.id || null);
 
   // Fetch job status
   const fetchJobStatus = async () => {
@@ -38,16 +44,37 @@ function JobStatusContent() {
     }
   };
 
-  // Start polling on mount
+  // Subscribe to WebSocket updates for this job
+  useEffect(() => {
+    if (isConnected && jobId) {
+      subscribeToJob(jobId);
+
+      return () => {
+        unsubscribeFromJob(jobId);
+      };
+    }
+  }, [isConnected, jobId, subscribeToJob, unsubscribeFromJob]);
+
+  // Handle WebSocket messages
+  useEffect(() => {
+    if (lastMessage && lastMessage.type === 'job_update' && lastMessage.job_id === jobId) {
+      console.log('📥 Received job update via WebSocket:', lastMessage);
+
+      // Fetch updated job data
+      fetchJobStatus();
+    }
+  }, [lastMessage, jobId]);
+
+  // Initial fetch and fallback polling
   useEffect(() => {
     fetchJobStatus();
 
-    // Poll every 2 seconds if job is still processing
+    // Fallback polling every 5 seconds (less frequent since we have WebSocket)
     const interval = setInterval(() => {
       if (job?.status === 'pending' || job?.status === 'processing') {
         fetchJobStatus();
       }
-    }, 2000);
+    }, 5000);
 
     setPollingInterval(interval);
 
@@ -159,9 +186,17 @@ function JobStatusContent() {
                 {' '}
                 {job.file_path || job.job_id}
               </h2>
-              <p className="text-gray-600">
-                {job.language || 'Unknown language'} • Created {formatDate(job.created_at)}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-gray-600">
+                  {job.language || 'Unknown language'} • Created {formatDate(job.created_at)}
+                </p>
+                {isConnected && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span className="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></span>
+                    Live
+                  </span>
+                )}
+              </div>
             </div>
             <StatusBadge status={job.status} />
           </div>

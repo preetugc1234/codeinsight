@@ -1213,3 +1213,26 @@ OAuth / JWT secrets if using Supabase Auth (CLIENT_ID, CLIENT_SECRET)
 WebSocket secret (optional, for secure notifications)
 
 I will use razorpay instead of stripe cause stripe is banned in india.
+
+
+Yes, exactly! 🎯
+
+  With the VS Code extension (lines 290-333 in prompt.md):
+
+  1. You write code in VS Code/Cursor ✍️
+  2. AI automatically detects issues (via DiagnosticCollection) 🔍
+  3. Shows inline warnings/errors (squiggly lines) ⚠️
+  4. Suggests fixes with one-click apply (via CodeActionProvider) ✨
+  5. No website needed - everything happens in your IDE 🚀
+
+  Key Features:
+  - Command: "AI: Review File" → auto-sends code to backend
+  - Real-time diagnostics → shows issues as you type
+  - Quick fixes → click to apply patches instantly
+  - No manual upload → works directly in your editor
+
+  vs. Website:
+  - Website = Manual upload + wait for results
+  - Extension = Automatic + Real-time suggestions while coding
+
+  That's why we're building it! 💪
