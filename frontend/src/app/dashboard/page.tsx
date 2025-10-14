@@ -3,18 +3,67 @@
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getUserJobs, calculateUserStats, type Job } from '@/lib/api/pythonWorker';
 
 function DashboardContent() {
   const router = useRouter();
   const { user, profile, signOut } = useAuthStore();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalReviews: 0,
+    totalTokens: 0,
+    totalCost: 0,
+    totalIssues: 0,
+    completedJobs: 0,
+    failedJobs: 0,
+    processingJobs: 0,
+    pendingJobs: 0,
+    cacheHitRate: 0,
+  });
+
+  // Fetch user jobs on mount
+  useEffect(() => {
+    const fetchJobs = async () => {
+      if (!user?.id) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await getUserJobs(user.id, 100);
+        setJobs(response.jobs);
+
+        // Calculate stats from jobs
+        const calculatedStats = calculateUserStats(response.jobs);
+        setStats(calculatedStats);
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();
     router.push('/login');
   };
+
+  // Format number with commas
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString();
+  };
+
+  // Get recent jobs (last 5)
+  const recentJobs = jobs.slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -118,6 +167,19 @@ function DashboardContent() {
           </p>
         </div>
 
+        {/* Error Alert */}
+        {error && (
+          <div className="px-4 mb-6">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <span className="text-red-600 text-xl">⚠️</span>
+              <div>
+                <h3 className="text-sm font-semibold text-red-900">Failed to load dashboard data</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="px-4 grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -125,8 +187,19 @@ function DashboardContent() {
               <h3 className="text-sm font-medium text-gray-500">Total Reviews</h3>
               <span className="text-2xl">📊</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900">0</p>
-            <p className="text-xs text-gray-500 mt-1">All time</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-9 bg-gray-200 rounded w-20 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-16"></div>
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-gray-900">{formatNumber(stats.totalReviews)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {stats.completedJobs} completed, {stats.failedJobs} failed
+                </p>
+              </>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -134,8 +207,19 @@ function DashboardContent() {
               <h3 className="text-sm font-medium text-gray-500">Tokens Used</h3>
               <span className="text-2xl">⚡</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900">0</p>
-            <p className="text-xs text-gray-500 mt-1">of {profile?.plan === 'business' ? '4M' : profile?.plan === 'pro' ? '500K' : '200K'} / month</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-9 bg-gray-200 rounded w-24 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-32"></div>
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-gray-900">{formatNumber(stats.totalTokens)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  ${stats.totalCost.toFixed(4)} spent • {stats.cacheHitRate.toFixed(1)}% cache hit
+                </p>
+              </>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -143,8 +227,17 @@ function DashboardContent() {
               <h3 className="text-sm font-medium text-gray-500">Issues Found</h3>
               <span className="text-2xl">🐛</span>
             </div>
-            <p className="text-3xl font-bold text-gray-900">0</p>
-            <p className="text-xs text-gray-500 mt-1">Fixed 0 issues</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-9 bg-gray-200 rounded w-20 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-gray-900">{formatNumber(stats.totalIssues)}</p>
+                <p className="text-xs text-gray-500 mt-1">From linter analysis</p>
+              </>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -192,6 +285,102 @@ function DashboardContent() {
           </div>
         </div>
 
+        {/* Recent Reviews */}
+        <div className="px-4 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xl font-bold text-gray-900">Recent Reviews</h3>
+            <Link href="/dashboard/history" className="text-sm text-blue-600 hover:text-blue-700">
+              View all →
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="animate-pulse space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                    <div className="h-6 bg-gray-200 rounded w-20"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : recentJobs.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+              <div className="text-4xl mb-3">📝</div>
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">No reviews yet</h4>
+              <p className="text-gray-600 mb-4">Start by submitting your first code review</p>
+              <Link
+                href="/dashboard/review"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Submit Code Review
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 divide-y divide-gray-200">
+              {recentJobs.map((job) => (
+                <Link
+                  key={job.job_id}
+                  href={`/dashboard/jobs/${job.job_id}`}
+                  className="block p-4 hover:bg-gray-50 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-2xl">
+                          {job.type === 'review' ? '🔍' : job.type === 'debug' ? '🐛' : '🏗️'}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-gray-900 truncate">
+                            {job.file_path || job.job_id}
+                          </h4>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <span>{job.language || 'Unknown'}</span>
+                            <span>•</span>
+                            <span>{new Date(job.created_at).toLocaleDateString()}</span>
+                            {job.tokens_used?.total_tokens > 0 && (
+                              <>
+                                <span>•</span>
+                                <span>{formatNumber(job.tokens_used.total_tokens)} tokens</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      {job.status === 'completed' && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          ✓ Completed
+                        </span>
+                      )}
+                      {job.status === 'processing' && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          ⏳ Processing
+                        </span>
+                      )}
+                      {job.status === 'pending' && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          ⏸️ Pending
+                        </span>
+                      )}
+                      {job.status === 'failed' && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          ✗ Failed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Getting Started */}
         <div className="px-4">
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
@@ -202,7 +391,11 @@ function DashboardContent() {
                 <span>Account created successfully</span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-gray-400">○</span>
+                {stats.totalReviews > 0 ? (
+                  <span className="text-green-600">✓</span>
+                ) : (
+                  <span className="text-gray-400">○</span>
+                )}
                 <Link href="/dashboard/review" className="hover:underline">Submit your first code review</Link>
               </li>
               <li className="flex items-center gap-2">
