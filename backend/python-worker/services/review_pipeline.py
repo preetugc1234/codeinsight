@@ -12,6 +12,7 @@ from services.prompt_service import prompt_service
 from services.cache_service import cache_service
 from services.mongodb_service import mongodb_service
 from services.websocket_service import websocket_manager
+from services.token_budget_service import token_budget_service
 
 class ReviewPipeline:
     """
