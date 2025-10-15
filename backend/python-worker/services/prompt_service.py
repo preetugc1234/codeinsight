@@ -18,9 +18,16 @@ class PromptService:
     def _load_system_brain(self):
         """
         Load system_brain from ai/system_brain directory
-        Try v2 (ULTRA) first, fallback to v1 if not found
+        Priority: v3 (BALANCED - best quality/token ratio) → v2 (ULTRA) → v1 (basic)
         """
-        # Try v2 (ULTRA) first
+        # Try v3 first (BALANCED - best for production)
+        brain_v3_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "ai",
+            "system_brain",
+            "system_brain_v3_balanced.json"
+        )
+
         brain_v2_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "ai",
@@ -35,7 +42,18 @@ class PromptService:
             "system_brain_v1.json"
         )
 
-        # Try loading v2 first (most powerful)
+        # Try loading v3 first (best quality/token ratio)
+        try:
+            with open(brain_v3_path, "r", encoding="utf-8") as f:
+                self.brain_data = json.load(f)
+                print(f"✅ Loaded system_brain_v3_balanced.json (OPTIMAL) successfully")
+                return
+        except FileNotFoundError:
+            print(f"⚠️ system_brain_v3_balanced.json not found, trying v2...")
+        except json.JSONDecodeError as e:
+            print(f"❌ Error parsing system_brain_v3_balanced.json: {e}, trying v2...")
+
+        # Try v2 (more comprehensive but uses more tokens)
         try:
             with open(brain_v2_path, "r", encoding="utf-8") as f:
                 self.brain_data = json.load(f)
