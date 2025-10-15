@@ -17,21 +17,42 @@ class PromptService:
 
     def _load_system_brain(self):
         """
-        Load system_brain_v1.json from ai/system_brain directory
+        Load system_brain from ai/system_brain directory
+        Try v2 (ULTRA) first, fallback to v1 if not found
         """
-        brain_path = os.path.join(
+        # Try v2 (ULTRA) first
+        brain_v2_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "ai",
+            "system_brain",
+            "system_brain_v2.json"
+        )
+
+        brain_v1_path = os.path.join(
             os.path.dirname(os.path.dirname(__file__)),
             "ai",
             "system_brain",
             "system_brain_v1.json"
         )
 
+        # Try loading v2 first (most powerful)
         try:
-            with open(brain_path, "r", encoding="utf-8") as f:
+            with open(brain_v2_path, "r", encoding="utf-8") as f:
+                self.brain_data = json.load(f)
+                print(f"✅ Loaded system_brain_v2.json ULTRA successfully")
+                return
+        except FileNotFoundError:
+            print(f"⚠️ system_brain_v2.json not found, trying v1...")
+        except json.JSONDecodeError as e:
+            print(f"❌ Error parsing system_brain_v2.json: {e}, trying v1...")
+
+        # Fallback to v1
+        try:
+            with open(brain_v1_path, "r", encoding="utf-8") as f:
                 self.brain_data = json.load(f)
                 print(f"✅ Loaded system_brain_v1.json successfully")
         except FileNotFoundError:
-            print(f"❌ Error: system_brain_v1.json not found at {brain_path}")
+            print(f"❌ Error: No system_brain file found")
             self.brain_data = None
         except json.JSONDecodeError as e:
             print(f"❌ Error parsing system_brain_v1.json: {e}")
