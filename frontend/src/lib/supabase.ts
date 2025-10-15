@@ -21,6 +21,9 @@ export type Profile = {
   first_name: string;
   last_name: string;
   plan: 'trial' | 'lite' | 'pro' | 'business';
+  billing_cycle?: 'monthly' | 'annual';
+  annual_discount_percentage?: number;
+  current_price?: number;
   trial_start_date?: string;
   trial_end_date?: string;
   subscription_status?: 'active' | 'expired' | 'cancelled';

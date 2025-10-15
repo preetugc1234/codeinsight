@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 function BillingContent() {
   const { profile } = useAuthStore();
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual'); // Default to annual (20% off)
 
   useEffect(() => {
     if (profile?.plan === 'trial' && profile?.trial_end_date) {
@@ -17,21 +18,39 @@ function BillingContent() {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       setTrialDaysLeft(Math.max(0, diffDays));
     }
+    // Set billing cycle from profile, default to annual
+    if (profile?.billing_cycle) {
+      setBillingCycle(profile.billing_cycle);
+    }
   }, [profile]);
 
-  const getPlanPrice = (plan: string) => {
-    switch (plan) {
-      case 'trial':
-        return '$0';
-      case 'lite':
-        return '$15/mo';
-      case 'pro':
-        return '$30/mo';
-      case 'business':
-        return '$200/mo';
-      default:
-        return '$0';
-    }
+  const getPlanPrice = (plan: string, cycle: 'monthly' | 'annual' = billingCycle) => {
+    const prices = {
+      monthly: {
+        trial: { price: 0, display: '$0' },
+        lite: { price: 15, display: '$15' },
+        pro: { price: 30, display: '$30' },
+        business: { price: 200, display: '$200' },
+      },
+      annual: {
+        trial: { price: 0, display: '$0' },
+        lite: { price: 12, display: '$12' },      // 20% off
+        pro: { price: 24, display: '$24' },       // 20% off
+        business: { price: 160, display: '$160' }, // 20% off
+      },
+    };
+    return prices[cycle][plan as keyof typeof prices.monthly] || prices[cycle].trial;
+  };
+
+  const getAnnualTotal = (plan: string) => {
+    const monthlyPrice = getPlanPrice(plan, 'annual').price;
+    return monthlyPrice * 12;
+  };
+
+  const getAnnualSavings = (plan: string) => {
+    const monthlyTotal = getPlanPrice(plan, 'monthly').price * 12;
+    const annualTotal = getAnnualTotal(plan);
+    return monthlyTotal - annualTotal;
   };
 
   const tokensUsed = profile?.tokens_used_this_month || 0;
@@ -70,11 +89,21 @@ function BillingContent() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-[#a1a1aa]">
-                    {profile?.plan === 'trial' ? '7-day free trial' : 'Renews monthly'}
+                    {profile?.plan === 'trial'
+                      ? '7-day free trial'
+                      : profile?.billing_cycle === 'annual'
+                        ? 'Renews annually (20% off)'
+                        : 'Renews monthly'
+                    }
                   </p>
                   <p className="text-2xl font-semibold text-white mt-1">
-                    {getPlanPrice(profile?.plan || 'trial')}
+                    {getPlanPrice(profile?.plan || 'trial', profile?.billing_cycle || 'annual').display}/mo
                   </p>
+                  {profile?.plan !== 'trial' && profile?.billing_cycle === 'annual' && (
+                    <p className="text-xs text-green-400 mt-1">
+                      Saving ${getAnnualSavings(profile.plan)}/year
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -114,6 +143,42 @@ function BillingContent() {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Billing Cycle Toggle */}
+          <div className="mb-8 flex flex-col items-center">
+            <div className="inline-flex items-center gap-3 bg-[#13131a] border border-[#27273a] rounded-xl p-2">
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
+                  billingCycle === 'monthly'
+                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+                    : 'text-[#a1a1aa] hover:text-white'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle('annual')}
+                className={`px-6 py-2.5 rounded-lg font-medium transition-all relative ${
+                  billingCycle === 'annual'
+                    ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+                    : 'text-[#a1a1aa] hover:text-white'
+                }`}
+              >
+                Annual
+                <span className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  20% OFF
+                </span>
+              </button>
+            </div>
+            <p className="text-sm text-[#71717a] mt-3">
+              {billingCycle === 'annual' ? (
+                <span className="text-green-400">💰 Save up to $480/year with annual billing!</span>
+              ) : (
+                <span>Switch to annual billing to save 20%</span>
+              )}
+            </p>
           </div>
 
           {/* Pricing Plans */}
@@ -161,12 +226,25 @@ function BillingContent() {
             </div>
 
             {/* LITE Plan */}
-            <div className="bg-[#13131a] border border-[#27273a] rounded-xl p-6 hover:border-purple-500/30 transition-colors">
+            <div className="bg-[#13131a] border border-[#27273a] rounded-xl p-6 hover:border-purple-500/30 transition-colors relative">
+              {billingCycle === 'annual' && (
+                <div className="absolute top-3 right-3 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold px-2 py-1 rounded">
+                  SAVE $36/YR
+                </div>
+              )}
               <div className="text-center mb-6">
                 <h3 className="text-xl font-bold text-white tracking-tight">LITE</h3>
                 <p className="text-[#a1a1aa] text-sm mt-1">For individuals</p>
-                <p className="text-4xl font-bold text-white mt-4">$15</p>
+                <div className="mt-4">
+                  <p className="text-4xl font-bold text-white">{getPlanPrice('lite').display}</p>
+                  {billingCycle === 'annual' && (
+                    <p className="text-sm text-[#71717a] line-through">$15</p>
+                  )}
+                </div>
                 <p className="text-[#71717a] text-sm">per month</p>
+                {billingCycle === 'annual' && (
+                  <p className="text-xs text-green-400 mt-1">${getAnnualTotal('lite')}/year</p>
+                )}
               </div>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start gap-2">
@@ -204,14 +282,27 @@ function BillingContent() {
 
             {/* PRO Plan */}
             <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-2 border-purple-500/20 rounded-xl p-6 hover:border-purple-500/40 transition-colors relative shadow-lg shadow-purple-500/10">
-              <div className="absolute top-0 right-0 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg rounded-tr-lg">
+              <div className="absolute top-0 left-0 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-br-lg rounded-tl-lg">
                 POPULAR
               </div>
-              <div className="text-center mb-6">
+              {billingCycle === 'annual' && (
+                <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg">
+                  SAVE $72/YR
+                </div>
+              )}
+              <div className="text-center mb-6 mt-6">
                 <h3 className="text-xl font-bold text-white tracking-tight">PRO</h3>
                 <p className="text-[#a1a1aa] text-sm mt-1">For professionals</p>
-                <p className="text-4xl font-bold text-white mt-4">$30</p>
+                <div className="mt-4">
+                  <p className="text-4xl font-bold text-white">{getPlanPrice('pro').display}</p>
+                  {billingCycle === 'annual' && (
+                    <p className="text-sm text-[#71717a] line-through">$30</p>
+                  )}
+                </div>
                 <p className="text-[#71717a] text-sm">per month</p>
+                {billingCycle === 'annual' && (
+                  <p className="text-xs text-green-400 mt-1">${getAnnualTotal('pro')}/year</p>
+                )}
               </div>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start gap-2">
@@ -248,12 +339,25 @@ function BillingContent() {
             </div>
 
             {/* BUSINESS Plan */}
-            <div className="bg-[#13131a] border border-[#27273a] rounded-xl p-6 hover:border-purple-500/30 transition-colors">
+            <div className="bg-[#13131a] border border-[#27273a] rounded-xl p-6 hover:border-purple-500/30 transition-colors relative">
+              {billingCycle === 'annual' && (
+                <div className="absolute top-3 right-3 bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-bold px-2 py-1 rounded">
+                  SAVE $480/YR
+                </div>
+              )}
               <div className="text-center mb-6">
                 <h3 className="text-xl font-bold text-white tracking-tight">BUSINESS</h3>
                 <p className="text-[#a1a1aa] text-sm mt-1">For teams</p>
-                <p className="text-4xl font-bold text-white mt-4">$200</p>
+                <div className="mt-4">
+                  <p className="text-4xl font-bold text-white">{getPlanPrice('business').display}</p>
+                  {billingCycle === 'annual' && (
+                    <p className="text-sm text-[#71717a] line-through">$200</p>
+                  )}
+                </div>
                 <p className="text-[#71717a] text-sm">per month</p>
+                {billingCycle === 'annual' && (
+                  <p className="text-xs text-green-400 mt-1">${getAnnualTotal('business')}/year</p>
+                )}
               </div>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start gap-2">
