@@ -2,6 +2,7 @@
 
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Sidebar } from '@/components/Sidebar';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -269,11 +270,7 @@ function JobStatusContent() {
                   )}
                 </div>
                 <div className="p-6">
-                  <div className="prose prose-sm max-w-none">
-                    <pre className="whitespace-pre-wrap text-sm text-[#a1a1aa] font-mono bg-[#1a1a24] p-4 rounded-lg border border-[#27273a]">
-{job.results.content}
-                    </pre>
-                  </div>
+                  <MarkdownRenderer content={job.results.content} />
                 </div>
               </div>
             </div>
