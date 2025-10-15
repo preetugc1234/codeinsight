@@ -60,7 +60,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 email: session.user.email || '',
                 first_name: session.user.user_metadata?.first_name || '',
                 last_name: session.user.user_metadata?.last_name || '',
-                plan: 'lite',
+                plan: 'trial',
                 created_at: new Date().toISOString(),
               }
             });
@@ -74,7 +74,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               email: session.user.email || '',
               first_name: session.user.user_metadata?.first_name || '',
               last_name: session.user.user_metadata?.last_name || '',
-              plan: 'lite',
+              plan: 'trial',
               created_at: new Date().toISOString(),
             }
           });
@@ -104,7 +104,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                   email: session.user.email || '',
                   first_name: session.user.user_metadata?.first_name || '',
                   last_name: session.user.user_metadata?.last_name || '',
-                  plan: 'lite',
+                  plan: 'trial',
                   created_at: new Date().toISOString(),
                 }
               });
@@ -117,7 +117,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 email: session.user.email || '',
                 first_name: session.user.user_metadata?.first_name || '',
                 last_name: session.user.user_metadata?.last_name || '',
-                plan: 'lite',
+                plan: 'trial',
                 created_at: new Date().toISOString(),
               }
             });
@@ -162,7 +162,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               email: data.user.email,
               first_name: firstName,
               last_name: lastName,
-              plan: 'lite',
+              plan: 'trial',
             });
 
           if (profileError) {

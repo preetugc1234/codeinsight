@@ -20,6 +20,13 @@ export type Profile = {
   email: string;
   first_name: string;
   last_name: string;
-  plan: 'lite' | 'pro' | 'business';
+  plan: 'trial' | 'lite' | 'pro' | 'business';
+  trial_start_date?: string;
+  trial_end_date?: string;
+  subscription_status?: 'active' | 'expired' | 'cancelled';
+  tokens_used_this_month?: number;
+  monthly_token_limit?: number;
+  billing_period_start?: string;
+  billing_period_end?: string;
   created_at: string;
 };
