@@ -12,6 +12,7 @@ function DashboardContent() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [stats, setStats] = useState({
     totalReviews: 0,
     totalTokens: 0,
@@ -23,6 +24,17 @@ function DashboardContent() {
     pendingJobs: 0,
     cacheHitRate: 0,
   });
+
+  // Calculate trial days remaining
+  useEffect(() => {
+    if (profile?.plan === 'trial' && profile?.trial_end_date) {
+      const endDate = new Date(profile.trial_end_date);
+      const now = new Date();
+      const diffTime = endDate.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      setTrialDaysLeft(Math.max(0, diffDays));
+    }
+  }, [profile]);
 
   // Fetch user jobs
   useEffect(() => {
@@ -66,6 +78,61 @@ function DashboardContent() {
               Here's what's happening with your code reviews today
             </p>
           </div>
+
+          {/* Trial Warning Banner */}
+          {profile?.plan === 'trial' && trialDaysLeft !== null && (
+            <div className={`mb-6 rounded-lg p-4 flex items-start gap-3 ${
+              trialDaysLeft === 0
+                ? 'bg-red-500/10 border border-red-500/20'
+                : trialDaysLeft <= 2
+                ? 'bg-yellow-500/10 border border-yellow-500/20'
+                : 'bg-purple-500/10 border border-purple-500/20'
+            }`}>
+              <span className="text-xl">
+                {trialDaysLeft === 0 ? '⏰' : trialDaysLeft <= 2 ? '⚠️' : '🎉'}
+              </span>
+              <div className="flex-1">
+                <h3 className={`text-sm font-medium ${
+                  trialDaysLeft === 0
+                    ? 'text-red-400'
+                    : trialDaysLeft <= 2
+                    ? 'text-yellow-400'
+                    : 'text-purple-300'
+                }`}>
+                  {trialDaysLeft === 0
+                    ? 'Trial Expired'
+                    : trialDaysLeft === 1
+                    ? '1 Day Left in Trial'
+                    : `${trialDaysLeft} Days Left in Free Trial`
+                  }
+                </h3>
+                <p className={`text-sm mt-1 ${
+                  trialDaysLeft === 0
+                    ? 'text-red-300/70'
+                    : trialDaysLeft <= 2
+                    ? 'text-yellow-300/70'
+                    : 'text-purple-300/70'
+                }`}>
+                  {trialDaysLeft === 0
+                    ? 'Your trial has ended. Upgrade to Lite, Pro, or Business to continue using CodeInsight.'
+                    : `You have ${trialDaysLeft} day${trialDaysLeft > 1 ? 's' : ''} remaining in your free trial. Upgrade now to continue enjoying CodeInsight.`
+                  }
+                </p>
+                <Link
+                  href="/dashboard/billing"
+                  className={`inline-block mt-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    trialDaysLeft === 0
+                      ? 'bg-red-500 text-white hover:bg-red-600'
+                      : trialDaysLeft <= 2
+                      ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                      : 'bg-purple-500 text-white hover:bg-purple-600'
+                  }`}
+                >
+                  View Plans & Upgrade
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* Error Alert */}
           {error && (
@@ -141,16 +208,47 @@ function DashboardContent() {
               )}
             </div>
 
-            {/* Current Plan */}
+            {/* Token Budget */}
             <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-lg p-6 hover:border-purple-500/40 transition-colors">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-purple-300">Current Plan</h3>
+                <h3 className="text-sm font-medium text-purple-300">Token Budget</h3>
                 <span className="text-2xl">💎</span>
               </div>
-              <p className="text-3xl font-bold text-white mb-1 capitalize">{profile?.plan || 'Lite'}</p>
-              <Link href="/dashboard/billing" className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
-                Upgrade →
-              </Link>
+              {(() => {
+                const tokensUsed = profile?.tokens_used_this_month || 0;
+                const tokenLimit = profile?.monthly_token_limit || 6000;
+                const usagePercentage = (tokensUsed / tokenLimit) * 100;
+                const remainingTokens = tokenLimit - tokensUsed;
+
+                return (
+                  <>
+                    <p className="text-2xl font-bold text-white mb-2">
+                      {remainingTokens.toLocaleString()}
+                      <span className="text-sm font-normal text-[#a1a1aa] ml-1">remaining</span>
+                    </p>
+                    <div className="w-full bg-[#1a1a24] rounded-full h-2 overflow-hidden mb-2">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          usagePercentage >= 90
+                            ? 'bg-gradient-to-r from-red-500 to-red-600'
+                            : usagePercentage >= 70
+                            ? 'bg-gradient-to-r from-yellow-500 to-yellow-600'
+                            : 'bg-gradient-to-r from-purple-500 to-purple-600'
+                        }`}
+                        style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-[#71717a] capitalize">
+                        {profile?.plan || 'trial'} plan
+                      </p>
+                      <Link href="/dashboard/billing" className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
+                        Upgrade →
+                      </Link>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
