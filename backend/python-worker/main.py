@@ -116,6 +116,15 @@ class ArchitectureRequest(BaseModel):
     scale: str
     database: str
 
+class EnqueueJobRequest(BaseModel):
+    user_id: str
+    job_type: str
+    file_path: Optional[str] = None
+    file_content: Optional[str] = None
+    language: Optional[str] = None
+    repo_id: Optional[str] = None
+    error_log: Optional[str] = None
+
 @app.get("/")
 async def root():
     return {
@@ -313,15 +322,7 @@ async def clear_cache():
 # ==================== JOB MANAGEMENT ENDPOINTS ====================
 
 @app.post("/jobs/enqueue")
-async def enqueue_job(
-    user_id: str,
-    job_type: str,
-    file_path: Optional[str] = None,
-    file_content: Optional[str] = None,
-    language: Optional[str] = None,
-    repo_id: Optional[str] = None,
-    error_log: Optional[str] = None
-):
+async def enqueue_job(request: EnqueueJobRequest):
     """
     Enqueue a new job to Redis Streams
     Job will be picked up by worker pool
@@ -334,24 +335,24 @@ async def enqueue_job(
     try:
         # Create job in MongoDB
         job_id = await mongodb_service.create_job(
-            user_id=user_id,
-            job_type=job_type,
-            repo_id=repo_id,
-            file_path=file_path,
-            file_content=file_content,
-            language=language
+            user_id=request.user_id,
+            job_type=request.job_type,
+            repo_id=request.repo_id,
+            file_path=request.file_path,
+            file_content=request.file_content,
+            language=request.language
         )
 
         # Enqueue to Redis Streams
         job_data = {
             "job_id": job_id,
-            "user_id": user_id,
-            "type": job_type,
-            "file_path": file_path,
-            "file_content": file_content,
-            "language": language,
-            "repo_id": repo_id,
-            "error_log": error_log  # For debug jobs
+            "user_id": request.user_id,
+            "type": request.job_type,
+            "file_path": request.file_path,
+            "file_content": request.file_content,
+            "language": request.language,
+            "repo_id": request.repo_id,
+            "error_log": request.error_log  # For debug jobs
         }
 
         message_id = await queue_service.enqueue_job(job_data)
