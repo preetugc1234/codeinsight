@@ -64,6 +64,48 @@ class ReviewPipeline:
             print(f"   User: {user_id}")
             print(f"{'='*60}\n")
 
+            # ==================== STEP 0: TOKEN BUDGET CHECK ====================
+            print("💰 Step 0: Checking token budget...")
+
+            # Estimate tokens needed (rough estimate based on code length)
+            estimated_tokens = prompt_service.count_tokens(file_content) + 2000  # code + expected response
+
+            # Check if user has budget
+            budget_allowed, reason, budget_info = token_budget_service.check_budget_availability(
+                user_id, estimated_tokens
+            )
+
+            if not budget_allowed:
+                error_message = budget_info.get("message", "Token budget exceeded")
+
+                await mongodb_service.update_job_status(
+                    job_id,
+                    "failed",
+                    error=error_message
+                )
+
+                # Notify user via WebSocket
+                await websocket_manager.notify_job_update(
+                    job_id=job_id,
+                    user_id=user_id,
+                    status="failed",
+                    data={
+                        "message": error_message,
+                        "reason": reason,
+                        "budget_info": budget_info
+                    }
+                )
+
+                print(f"❌ Token budget check failed: {reason}")
+                print(f"   {error_message}")
+                return False
+
+            print(f"✅ Token budget OK - {budget_info.get('remaining_tokens', 0):,} tokens remaining")
+
+            # Warn if approaching limit
+            if budget_info.get("soft_throttle"):
+                print(f"⚠️  WARNING: User at {budget_info.get('usage_percentage')}% of quota")
+
             # Update job status to processing
             await mongodb_service.update_job_status(job_id, "processing")
 
@@ -242,7 +284,18 @@ class ReviewPipeline:
                 requests_used=1
             )
 
-            print("✅ Results stored in MongoDB")
+            # ==================== RECORD TOKEN USAGE IN BUDGET SYSTEM ====================
+            token_budget_service.record_token_usage(
+                user_id=user_id,
+                job_id=job_id,
+                job_type="review",
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=tokens_used.get("total_tokens", 0),
+                model=claude_result.get("model", "claude-3-5-sonnet")
+            )
+
+            print("✅ Results stored in MongoDB + Token usage recorded")
 
             # ==================== COMPLETE ====================
             elapsed = time.time() - start_time
@@ -309,6 +362,48 @@ class ReviewPipeline:
             print(f"   File: {file_path} ({language})")
             print(f"   User: {user_id}")
             print(f"{'='*60}\n")
+
+            # ==================== STEP 0: TOKEN BUDGET CHECK ====================
+            print("💰 Step 0: Checking token budget...")
+
+            # Estimate tokens needed (code + error log + expected response)
+            estimated_tokens = prompt_service.count_tokens(file_content + error_log) + 2000
+
+            # Check if user has budget
+            budget_allowed, reason, budget_info = token_budget_service.check_budget_availability(
+                user_id, estimated_tokens
+            )
+
+            if not budget_allowed:
+                error_message = budget_info.get("message", "Token budget exceeded")
+
+                await mongodb_service.update_job_status(
+                    job_id,
+                    "failed",
+                    error=error_message
+                )
+
+                # Notify user via WebSocket
+                await websocket_manager.notify_job_update(
+                    job_id=job_id,
+                    user_id=user_id,
+                    status="failed",
+                    data={
+                        "message": error_message,
+                        "reason": reason,
+                        "budget_info": budget_info
+                    }
+                )
+
+                print(f"❌ Token budget check failed: {reason}")
+                print(f"   {error_message}")
+                return False
+
+            print(f"✅ Token budget OK - {budget_info.get('remaining_tokens', 0):,} tokens remaining")
+
+            # Warn if approaching limit
+            if budget_info.get("soft_throttle"):
+                print(f"⚠️  WARNING: User at {budget_info.get('usage_percentage')}% of quota")
 
             # Update job status to processing
             await mongodb_service.update_job_status(job_id, "processing")
@@ -490,7 +585,18 @@ class ReviewPipeline:
                 requests_used=1
             )
 
-            print("✅ Results stored in MongoDB")
+            # ==================== RECORD TOKEN USAGE IN BUDGET SYSTEM ====================
+            token_budget_service.record_token_usage(
+                user_id=user_id,
+                job_id=job_id,
+                job_type="review",
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                total_tokens=tokens_used.get("total_tokens", 0),
+                model=claude_result.get("model", "claude-3-5-sonnet")
+            )
+
+            print("✅ Results stored in MongoDB + Token usage recorded")
 
             # ==================== COMPLETE ====================
             elapsed = time.time() - start_time
