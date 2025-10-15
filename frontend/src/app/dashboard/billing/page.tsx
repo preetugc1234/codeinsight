@@ -34,7 +34,7 @@ function BillingContent() {
                 <div className="text-right">
                   <p className="text-sm text-[#a1a1aa]">Renews monthly</p>
                   <p className="text-2xl font-semibold text-white mt-1">
-                    {profile?.plan === 'PRO' ? '$29/mo' : 'Free'}
+                    {profile?.plan === 'pro' ? '$29/mo' : 'Free'}
                   </p>
                 </div>
               </div>

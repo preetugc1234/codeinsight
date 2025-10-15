@@ -62,7 +62,7 @@ export function Sidebar() {
               {profile?.plan || 'LITE'}
             </span>
           </div>
-          {profile?.plan === 'LITE' && (
+          {profile?.plan === 'lite' && (
             <Link
               href="/dashboard/billing"
               className="block w-full text-center px-3 py-1.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-xs font-medium rounded-md hover:from-purple-600 hover:to-purple-700 transition-all"

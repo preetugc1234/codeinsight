@@ -57,7 +57,7 @@ function SettingsContent() {
                 <div>
                   <p className="text-3xl font-bold text-white mb-1">{profile?.plan || 'LITE'}</p>
                   <p className="text-sm text-[#a1a1aa]">
-                    {profile?.plan === 'PRO' ? 'Unlimited reviews & priority support' : '50 reviews per month'}
+                    {profile?.plan === 'pro' ? 'Unlimited reviews & priority support' : '50 reviews per month'}
                   </p>
                 </div>
                 <Link
