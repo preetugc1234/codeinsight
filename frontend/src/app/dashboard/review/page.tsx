@@ -1,16 +1,16 @@
 'use client';
 
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { Sidebar } from '@/components/Sidebar';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import Link from 'next/link';
 import Editor from '@monaco-editor/react';
 import { enqueueJob } from '@/lib/api/pythonWorker';
 
 function CodeReviewContent() {
   const router = useRouter();
-  const { user, profile } = useAuthStore();
+  const { user } = useAuthStore();
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('python');
   const [fileName, setFileName] = useState('untitled.py');
@@ -32,35 +32,24 @@ function CodeReviewContent() {
     { value: 'swift', label: 'Swift', extension: '.swift' },
   ];
 
-  // Handle language change - update file extension
   const handleLanguageChange = (newLanguage: string) => {
     setLanguage(newLanguage);
-
     const langConfig = supportedLanguages.find(l => l.value === newLanguage);
     if (langConfig) {
-      // Update file extension if filename still has old extension
       const nameWithoutExt = fileName.split('.').slice(0, -1).join('.') || 'untitled';
       setFileName(`${nameWithoutExt}${langConfig.extension}`);
     }
   };
 
-  // Handle file upload
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setFileName(file.name);
-
-    // Detect language from file extension
     const ext = file.name.split('.').pop()?.toLowerCase();
-    const detectedLang = supportedLanguages.find(l =>
-      l.extension.toLowerCase() === `.${ext}`
-    );
-    if (detectedLang) {
-      setLanguage(detectedLang.value);
-    }
+    const detectedLang = supportedLanguages.find(l => l.extension.toLowerCase() === `.${ext}`);
+    if (detectedLang) setLanguage(detectedLang.value);
 
-    // Read file content
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
@@ -69,7 +58,6 @@ function CodeReviewContent() {
     reader.readAsText(file);
   };
 
-  // Submit code for review
   const handleSubmit = async () => {
     if (!code.trim()) {
       setError('Please enter some code to review');
@@ -85,7 +73,6 @@ function CodeReviewContent() {
       setSubmitting(true);
       setError(null);
 
-      // Enqueue job to Python worker
       const result = await enqueueJob({
         user_id: user.id,
         job_type: 'review',
@@ -95,7 +82,6 @@ function CodeReviewContent() {
       });
 
       if (result.success) {
-        // Redirect to job status page
         router.push(`/dashboard/jobs/${result.job_id}`);
       } else {
         throw new Error('Failed to submit code review');
@@ -109,93 +95,60 @@ function CodeReviewContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link href="/dashboard" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Code Insight
-              </Link>
-              <div className="hidden md:flex ml-10 space-x-8">
-                <Link href="/dashboard" className="text-gray-500 hover:text-gray-900 py-5">
-                  Dashboard
-                </Link>
-                <Link href="/dashboard/review" className="text-gray-900 font-medium border-b-2 border-blue-600 py-5">
-                  Code Review
-                </Link>
-                <Link href="/dashboard/history" className="text-gray-500 hover:text-gray-900 py-5">
-                  History
-                </Link>
-                <Link href="/dashboard/settings" className="text-gray-500 hover:text-gray-900 py-5">
-                  Settings
-                </Link>
-              </div>
-            </div>
+    <div className="flex h-screen bg-[#0a0a0f]">
+      <Sidebar />
 
-            <div className="flex items-center gap-4">
-              <span className="px-3 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-800 uppercase">
-                {profile?.plan || 'LITE'}
-              </span>
-            </div>
+      <div className="ml-64 flex-1 overflow-y-auto">
+        <main className="p-8">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-semibold text-white mb-2 tracking-tight">
+              Code Review 🔍
+            </h1>
+            <p className="text-[#a1a1aa]">
+              Submit your code for AI-powered review with Claude Sonnet 4.5
+            </p>
           </div>
-        </div>
-      </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 mb-6">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Code Review 🔍
-          </h2>
-          <p className="text-gray-600">
-            Submit your code for AI-powered review with Claude Sonnet 4.5
-          </p>
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="px-4 mb-6">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-              <span className="text-red-600 text-xl">⚠️</span>
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
+              <span className="text-red-400 text-xl">⚠️</span>
               <div>
-                <h3 className="text-sm font-semibold text-red-900">Error</h3>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <h3 className="text-sm font-medium text-red-400">Error</h3>
+                <p className="text-sm text-red-300/70 mt-1">{error}</p>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Code Editor Section */}
-        <div className="px-4">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* Code Editor */}
+          <div className="bg-[#13131a] border border-[#27273a] rounded-xl overflow-hidden">
             {/* Editor Header */}
-            <div className="border-b border-gray-200 p-4 bg-gray-50">
+            <div className="border-b border-[#27273a] p-4 bg-[#1a1a24]">
               <div className="flex items-center gap-4 flex-wrap">
                 {/* File Name */}
                 <div className="flex-1 min-w-[200px]">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-[#a1a1aa] mb-1.5">
                     File Name
                   </label>
                   <input
                     type="text"
                     value={fileName}
                     onChange={(e) => setFileName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-[#13131a] border border-[#27273a] rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
                     placeholder="untitled.py"
                   />
                 </div>
 
                 {/* Language Selector */}
                 <div className="min-w-[150px]">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-[#a1a1aa] mb-1.5">
                     Language
                   </label>
                   <select
                     value={language}
                     onChange={(e) => handleLanguageChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 bg-[#13131a] border border-[#27273a] rounded-lg text-white text-sm focus:outline-none focus:border-purple-500 transition-colors"
                   >
                     {supportedLanguages.map((lang) => (
                       <option key={lang.value} value={lang.value}>
@@ -207,10 +160,10 @@ function CodeReviewContent() {
 
                 {/* File Upload */}
                 <div className="min-w-[150px]">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-xs font-medium text-[#a1a1aa] mb-1.5">
                     Upload File
                   </label>
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#13131a] border border-[#27273a] rounded-lg text-sm font-medium text-[#a1a1aa] hover:bg-[#1f1f2e] hover:text-white transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
@@ -242,15 +195,16 @@ function CodeReviewContent() {
                   automaticLayout: true,
                   tabSize: 2,
                   wordWrap: 'on',
+                  fontFamily: 'Poppins, monospace',
                 }}
               />
             </div>
 
             {/* Editor Footer */}
-            <div className="border-t border-gray-200 p-4 bg-gray-50 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">{code.split('\n').length}</span> lines •
-                <span className="font-medium ml-2">{code.length}</span> characters
+            <div className="border-t border-[#27273a] p-4 bg-[#1a1a24] flex items-center justify-between">
+              <div className="text-sm text-[#a1a1aa]">
+                <span className="font-medium text-white">{code.split('\n').length}</span> lines ·
+                <span className="font-medium text-white ml-2">{code.length}</span> characters
               </div>
 
               <div className="flex items-center gap-3">
@@ -260,7 +214,7 @@ function CodeReviewContent() {
                     setFileName('untitled.py');
                     setError(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
+                  className="px-4 py-2 bg-[#13131a] border border-[#27273a] rounded-lg text-sm font-medium text-[#a1a1aa] hover:bg-[#1f1f2e] hover:text-white transition-colors"
                   disabled={submitting}
                 >
                   Clear
@@ -269,7 +223,7 @@ function CodeReviewContent() {
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || !code.trim()}
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg text-sm font-medium hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-purple-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-purple-500/20"
                 >
                   {submitting ? (
                     <>
@@ -291,32 +245,32 @@ function CodeReviewContent() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Info Cards */}
-        <div className="px-4 mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-blue-900 mb-2">🤖 AI-Powered Review</h3>
-            <p className="text-xs text-blue-800">
-              Your code will be analyzed by Claude Sonnet 4.5, the most advanced AI model for code review
-            </p>
-          </div>
+          {/* Info Cards */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/30 transition-colors">
+              <h3 className="text-sm font-semibold text-white mb-2 tracking-tight">🤖 AI-Powered Review</h3>
+              <p className="text-xs text-[#a1a1aa]">
+                Your code will be analyzed by Claude Sonnet 4.5, the most advanced AI model for code review
+              </p>
+            </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-green-900 mb-2">⚡ Fast Processing</h3>
-            <p className="text-xs text-green-800">
-              Reviews typically complete in 5-15 seconds. You'll be redirected to the results page automatically
-            </p>
-          </div>
+            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/30 transition-colors">
+              <h3 className="text-sm font-semibold text-white mb-2 tracking-tight">⚡ Fast Processing</h3>
+              <p className="text-xs text-[#a1a1aa]">
+                Reviews typically complete in 5-15 seconds. You'll be redirected to the results page automatically
+              </p>
+            </div>
 
-          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-            <h3 className="text-sm font-semibold text-purple-900 mb-2">🔒 Secure & Private</h3>
-            <p className="text-xs text-purple-800">
-              Your code is never stored permanently. We only cache results for 24 hours for performance
-            </p>
+            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 hover:border-purple-500/30 transition-colors">
+              <h3 className="text-sm font-semibold text-white mb-2 tracking-tight">🔒 Secure & Private</h3>
+              <p className="text-xs text-[#a1a1aa]">
+                Your code is never stored permanently. We only cache results for 24 hours for performance
+              </p>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
