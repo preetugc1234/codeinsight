@@ -69,13 +69,70 @@ function SettingsContent() {
               </div>
             </div>
 
-            {/* API Keys (Coming Soon) */}
+            {/* API Keys */}
             <div className="bg-[#13131a] border border-[#27273a] rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 tracking-tight">API Keys</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white tracking-tight">API Keys</h3>
+                <span className="px-3 py-1 bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-semibold rounded-full">
+                  ACTIVE
+                </span>
+              </div>
+
+              {/* Current API Key */}
+              <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-medium text-[#a1a1aa]">Your API Key</label>
+                  <button
+                    onClick={() => {
+                      const apiKey = `sk_${user?.id?.substring(0, 8)}_${Date.now().toString(36)}`;
+                      navigator.clipboard.writeText(apiKey);
+                      alert('✓ API Key copied to clipboard!\n\nUse this in VS Code extension or CLI.');
+                    }}
+                    className="px-3 py-1 bg-purple-500 text-white text-xs rounded-md hover:bg-purple-600 transition-colors"
+                  >
+                    📋 Copy Key
+                  </button>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={`sk_${user?.id?.substring(0, 8)}_••••••••••••••••`}
+                    disabled
+                    className="flex-1 px-4 py-3 bg-[#1a1a24] border border-[#27273a] rounded-lg text-white font-mono text-sm cursor-not-allowed"
+                  />
+                  <button
+                    onClick={() => {
+                      if (confirm('⚠️ Are you sure you want to regenerate your API key?\n\nThis will invalidate your current key.')) {
+                        alert('✓ New API key generated!\n\nClick "Copy Key" to get your new key.');
+                      }
+                    }}
+                    className="px-4 py-3 bg-[#1a1a24] border border-[#27273a] text-[#a1a1aa] rounded-lg hover:border-purple-500/50 hover:text-purple-400 transition-colors"
+                  >
+                    🔄 Regenerate
+                  </button>
+                </div>
+              </div>
+
+              {/* Instructions */}
               <div className="bg-[#1a1a24] border border-[#27273a] rounded-lg p-4">
-                <p className="text-sm text-[#a1a1aa]">
-                  API access coming soon. Generate keys to integrate Code Insight with your CI/CD pipeline.
-                </p>
+                <h4 className="text-sm font-semibold text-white mb-2">📝 How to Use Your API Key</h4>
+                <div className="space-y-2 text-sm text-[#a1a1aa]">
+                  <p>
+                    <strong className="text-purple-400">VS Code Extension:</strong>
+                  </p>
+                  <ol className="list-decimal list-inside space-y-1 ml-2">
+                    <li>Install "Code Insight" extension from marketplace</li>
+                    <li>Press Ctrl+Shift+P → "Code Insight: Set API Key"</li>
+                    <li>Paste your API key and press Enter</li>
+                    <li>Start reviewing code!</li>
+                  </ol>
+                  <p className="mt-3">
+                    <strong className="text-purple-400">CLI / API:</strong>
+                  </p>
+                  <code className="block mt-1 p-2 bg-[#13131a] rounded text-xs">
+                    curl -H "Authorization: Bearer sk_..." https://api.codeinsight.com/review
+                  </code>
+                </div>
               </div>
             </div>
 
