@@ -1,0 +1,159 @@
+{
+  "name": "code-insight",
+  "displayName": "Code Insight - AI Code Review",
+  "description": "Real-time AI-powered code review with Claude Sonnet 4.5. Get instant suggestions, fix bugs, and improve code quality.",
+  "version": "1.0.0",
+  "publisher": "code-insight",
+  "icon": "images/icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages",
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "code review",
+    "ai",
+    "claude",
+    "debugging",
+    "code quality",
+    "linter",
+    "suggestions"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeInsight.reviewFile",
+        "title": "Code Insight: Review Current File",
+        "icon": "$(search-view-icon)"
+      },
+      {
+        "command": "codeInsight.reviewSelection",
+        "title": "Code Insight: Review Selection",
+        "icon": "$(search-view-icon)"
+      },
+      {
+        "command": "codeInsight.debugError",
+        "title": "Code Insight: Debug Doctor",
+        "icon": "$(bug)"
+      },
+      {
+        "command": "codeInsight.setApiKey",
+        "title": "Code Insight: Set API Key"
+      },
+      {
+        "command": "codeInsight.clearCache",
+        "title": "Code Insight: Clear Cache"
+      },
+      {
+        "command": "codeInsight.showDashboard",
+        "title": "Code Insight: Open Dashboard"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorHasSelection",
+          "command": "codeInsight.reviewSelection",
+          "group": "codeInsight@1"
+        },
+        {
+          "command": "codeInsight.reviewFile",
+          "group": "codeInsight@2"
+        },
+        {
+          "command": "codeInsight.debugError",
+          "group": "codeInsight@3"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "codeInsight.reviewFile",
+          "group": "navigation",
+          "when": "editorLangId"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Code Insight",
+      "properties": {
+        "codeInsight.apiEndpoint": {
+          "type": "string",
+          "default": "https://api.codeinsight.com",
+          "description": "API endpoint URL"
+        },
+        "codeInsight.autoReview": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically review files on save"
+        },
+        "codeInsight.showInlineSuggestions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline code suggestions"
+        },
+        "codeInsight.enableCache": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable local caching of results"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codeInsight",
+          "title": "Code Insight",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "codeInsight": [
+        {
+          "id": "codeInsightResults",
+          "name": "Review Results"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "keytar": "^7.9.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/preetugc1234/codeinsight.git"
+  },
+  "bugs": {
+    "url": "https://github.com/preetugc1234/codeinsight/issues"
+  },
+  "homepage": "https://codeinsight.com"
+}
