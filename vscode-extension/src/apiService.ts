@@ -148,11 +148,8 @@ export class ApiService {
             return false;
         }
 
-        try {
-            await this.client.get('/whoami');
-            return true;
-        } catch {
-            return false;
-        }
+        // Skip validation for now - just check if key exists
+        // TODO: Implement /whoami endpoint or /api/keys/validate
+        return this.apiKey.length > 10;
     }
 }
