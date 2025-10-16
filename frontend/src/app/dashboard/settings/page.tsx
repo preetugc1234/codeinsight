@@ -4,9 +4,12 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Sidebar } from '@/components/Sidebar';
 import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
+import { useState } from 'react';
 
 function SettingsContent() {
-  const { user, profile } = useAuthStore();
+  const { user, profile, session } = useAuthStore();
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   return (
     <div className="flex h-screen bg-[#0a0a0f]">
@@ -84,11 +87,15 @@ function SettingsContent() {
                   <label className="text-sm font-medium text-[#a1a1aa]">Your API Key</label>
                   <button
                     onClick={() => {
-                      const apiKey = `sk_${user?.id?.substring(0, 8)}_${Date.now().toString(36)}`;
-                      navigator.clipboard.writeText(apiKey);
-                      alert('✓ API Key copied to clipboard!\n\nUse this in VS Code extension or CLI.');
+                      if (generatedKey) {
+                        navigator.clipboard.writeText(generatedKey);
+                        alert('✓ API Key copied to clipboard!\n\nUse this in VS Code extension or CLI.');
+                      } else {
+                        alert('⚠️ Please generate an API key first by clicking "Regenerate".');
+                      }
                     }}
-                    className="px-3 py-1 bg-purple-500 text-white text-xs rounded-md hover:bg-purple-600 transition-colors"
+                    className="px-3 py-1 bg-purple-500 text-white text-xs rounded-md hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!generatedKey}
                   >
                     📋 Copy Key
                   </button>
@@ -96,19 +103,49 @@ function SettingsContent() {
                 <div className="flex items-center gap-3">
                   <input
                     type="text"
-                    value={`sk_${user?.id?.substring(0, 8)}_••••••••••••••••`}
+                    value={generatedKey || 'Click "Regenerate" to create your API key'}
                     disabled
                     className="flex-1 px-4 py-3 bg-[#1a1a24] border border-[#27273a] rounded-lg text-white font-mono text-sm cursor-not-allowed"
                   />
                   <button
-                    onClick={() => {
+                    onClick={async () => {
+                      if (!session?.access_token) {
+                        alert('❌ Not authenticated. Please sign in again.');
+                        return;
+                      }
+
                       if (confirm('⚠️ Are you sure you want to regenerate your API key?\n\nThis will invalidate your current key.')) {
-                        alert('✓ New API key generated!\n\nClick "Copy Key" to get your new key.');
+                        setIsGenerating(true);
+                        try {
+                          const response = await fetch('/api/keys/generate', {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${session.access_token}`,
+                              'Content-Type': 'application/json',
+                            },
+                          });
+
+                          const data = await response.json();
+
+                          if (data.success && data.api_key) {
+                            setGeneratedKey(data.api_key);
+                            navigator.clipboard.writeText(data.api_key);
+                            alert(`✓ New API key generated and copied to clipboard!\n\n${data.api_key}\n\n⚠️ Save it securely - you won't see it again after leaving this page!`);
+                          } else {
+                            alert('❌ Error: ' + (data.message || 'Failed to generate API key'));
+                          }
+                        } catch (error) {
+                          console.error('Error generating API key:', error);
+                          alert('❌ Failed to generate API key. Please try again or contact support.');
+                        } finally {
+                          setIsGenerating(false);
+                        }
                       }
                     }}
-                    className="px-4 py-3 bg-[#1a1a24] border border-[#27273a] text-[#a1a1aa] rounded-lg hover:border-purple-500/50 hover:text-purple-400 transition-colors"
+                    className="px-4 py-3 bg-[#1a1a24] border border-[#27273a] text-[#a1a1aa] rounded-lg hover:border-purple-500/50 hover:text-purple-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isGenerating}
                   >
-                    🔄 Regenerate
+                    {isGenerating ? '⏳ Generating...' : '🔄 Regenerate'}
                   </button>
                 </div>
               </div>
