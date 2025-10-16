@@ -106,6 +106,27 @@ class ReviewPipeline:
             if budget_info.get("soft_throttle"):
                 print(f"⚠️  WARNING: User at {budget_info.get('usage_percentage')}% of quota")
 
+                # ==================== SOFT-THROTTLE: ADD DELAY AT 90%+ USAGE ====================
+                print(f"⏳ SOFT THROTTLE ACTIVATED: Adding 30-second delay to encourage upgrade...")
+
+                # Notify user about throttling via WebSocket
+                await websocket_manager.notify_job_update(
+                    job_id=job_id,
+                    user_id=user_id,
+                    status="throttled",
+                    data={
+                        "message": "⚠️ Processing slowly due to high usage (90%+ quota used). Upgrade to avoid delays.",
+                        "usage_percentage": budget_info.get('usage_percentage'),
+                        "throttle_delay": 30,
+                        "remaining_tokens": budget_info.get('remaining_tokens', 0)
+                    }
+                )
+
+                # Add 30-second delay to queue requests instead of blocking
+                import asyncio
+                await asyncio.sleep(30)
+                print("✅ Throttle delay complete, proceeding with job...")
+
             # Update job status to processing
             await mongodb_service.update_job_status(job_id, "processing")
 
@@ -163,15 +184,26 @@ class ReviewPipeline:
 
                 user_prompt += lint_context
 
-            # Count tokens
-            prompt_tokens = prompt_service.count_tokens(system_prompt + user_prompt)
-            print(f"✅ Prompt built: {prompt_tokens} tokens")
+            # Count tokens BEFORE compression
+            original_tokens = prompt_service.count_tokens(system_prompt + user_prompt)
+
+            # ==================== COMPRESS PROMPT (40-60% TOKEN REDUCTION) ====================
+            print(f"\n🗜️  Compressing prompt to save tokens...")
+            compressed_user_prompt = prompt_service.compress_prompt(user_prompt, target_reduction=0.5)
+            compressed_tokens = prompt_service.count_tokens(system_prompt + compressed_user_prompt)
+            tokens_saved = original_tokens - compressed_tokens
+            compression_percentage = (tokens_saved / original_tokens * 100) if original_tokens > 0 else 0
+
+            print(f"✅ Compressed: {original_tokens} → {compressed_tokens} tokens ({compression_percentage:.1f}% reduction, saved {tokens_saved} tokens)")
+
+            # Use compressed prompt for Claude API call
+            user_prompt = compressed_user_prompt
 
             # ==================== STEP 4: CHECK CACHE ====================
             print("\n💾 Step 4: Checking cache...")
             cache_key = cache_service.generate_cache_key(system_prompt, user_prompt)
 
-            cached_result = await cache_service.get(cache_key)
+            cached_result = await cache_service.get(cache_key, user_id=user_id)
 
             if cached_result:
                 print("✅ Cache HIT! Using cached response")
@@ -405,6 +437,27 @@ class ReviewPipeline:
             if budget_info.get("soft_throttle"):
                 print(f"⚠️  WARNING: User at {budget_info.get('usage_percentage')}% of quota")
 
+                # ==================== SOFT-THROTTLE: ADD DELAY AT 90%+ USAGE ====================
+                print(f"⏳ SOFT THROTTLE ACTIVATED: Adding 30-second delay to encourage upgrade...")
+
+                # Notify user about throttling via WebSocket
+                await websocket_manager.notify_job_update(
+                    job_id=job_id,
+                    user_id=user_id,
+                    status="throttled",
+                    data={
+                        "message": "⚠️ Processing slowly due to high usage (90%+ quota used). Upgrade to avoid delays.",
+                        "usage_percentage": budget_info.get('usage_percentage'),
+                        "throttle_delay": 30,
+                        "remaining_tokens": budget_info.get('remaining_tokens', 0)
+                    }
+                )
+
+                # Add 30-second delay to queue requests instead of blocking
+                import asyncio
+                await asyncio.sleep(30)
+                print("✅ Throttle delay complete, proceeding with job...")
+
             # Update job status to processing
             await mongodb_service.update_job_status(job_id, "processing")
 
@@ -463,15 +516,26 @@ class ReviewPipeline:
 
                 user_prompt += lint_context
 
-            # Count tokens
-            prompt_tokens = prompt_service.count_tokens(system_prompt + user_prompt)
-            print(f"✅ Prompt built: {prompt_tokens} tokens")
+            # Count tokens BEFORE compression
+            original_tokens = prompt_service.count_tokens(system_prompt + user_prompt)
+
+            # ==================== COMPRESS PROMPT (40-60% TOKEN REDUCTION) ====================
+            print(f"\n🗜️  Compressing prompt to save tokens...")
+            compressed_user_prompt = prompt_service.compress_prompt(user_prompt, target_reduction=0.5)
+            compressed_tokens = prompt_service.count_tokens(system_prompt + compressed_user_prompt)
+            tokens_saved = original_tokens - compressed_tokens
+            compression_percentage = (tokens_saved / original_tokens * 100) if original_tokens > 0 else 0
+
+            print(f"✅ Compressed: {original_tokens} → {compressed_tokens} tokens ({compression_percentage:.1f}% reduction, saved {tokens_saved} tokens)")
+
+            # Use compressed prompt for Claude API call
+            user_prompt = compressed_user_prompt
 
             # ==================== STEP 4: CHECK CACHE ====================
             print("\n💾 Step 4: Checking cache...")
             cache_key = cache_service.generate_cache_key(system_prompt, user_prompt)
 
-            cached_result = await cache_service.get(cache_key)
+            cached_result = await cache_service.get(cache_key, user_id=user_id)
 
             if cached_result:
                 print("✅ Cache HIT! Using cached response")

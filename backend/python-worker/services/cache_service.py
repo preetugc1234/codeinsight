@@ -44,26 +44,63 @@ class CacheService:
             await self.redis_client.close()
             print("🔌 Redis disconnected")
 
-    def generate_cache_key(self, prompt: str, context: str = "") -> str:
+    def _normalize_code(self, code: str) -> str:
+        """
+        Normalize code for better cache key matching
+        Removes comments, extra whitespace to improve cache hit rate
+
+        Args:
+            code: Raw code string
+
+        Returns:
+            Normalized code
+        """
+        import re
+
+        # Remove single-line comments (// and #)
+        normalized = re.sub(r'//.*?$', '', code, flags=re.MULTILINE)
+        normalized = re.sub(r'#.*?$', '', normalized, flags=re.MULTILINE)
+
+        # Remove multi-line comments (/* ... */ and ''' ... ''')
+        normalized = re.sub(r'/\*.*?\*/', '', normalized, flags=re.DOTALL)
+        normalized = re.sub(r"'''.*?'''", '', normalized, flags=re.DOTALL)
+        normalized = re.sub(r'""".*?"""', '', normalized, flags=re.DOTALL)
+
+        # Normalize whitespace (collapse multiple spaces/tabs to single space)
+        normalized = re.sub(r'\s+', ' ', normalized)
+
+        # Remove leading/trailing whitespace
+        normalized = normalized.strip()
+
+        return normalized
+
+    def generate_cache_key(self, prompt: str, context: str = "", normalize: bool = True) -> str:
         """
         Generate cache key from hash(prompt + context)
+        Optionally normalizes code for better cache matching
 
         Args:
             prompt: The prompt text
             context: Additional context (code, error log, etc.)
+            normalize: Whether to normalize code before hashing (default: True)
 
         Returns:
             SHA256 hash as cache key
         """
+        # Normalize context (usually code) for better cache hits
+        if normalize and context:
+            context = self._normalize_code(context)
+
         combined = f"{prompt}||{context}"
         return hashlib.sha256(combined.encode()).hexdigest()
 
-    async def get(self, cache_key: str) -> Optional[Dict[str, Any]]:
+    async def get(self, cache_key: str, user_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Get cached response by key
 
         Args:
             cache_key: Cache key to lookup
+            user_id: Optional user ID for tracking cache stats
 
         Returns:
             Cached data dict or None if not found
@@ -77,15 +114,55 @@ class CacheService:
             if cached_data:
                 self.hits += 1
                 print(f"✅ Cache HIT for key: {cache_key[:16]}... (Total hits: {self.hits})")
+
+                # Track cache hit in MongoDB (async, non-blocking)
+                if user_id:
+                    asyncio.create_task(self._track_cache_event(user_id, "hit"))
+
                 return json.loads(cached_data)
             else:
                 self.misses += 1
                 print(f"❌ Cache MISS for key: {cache_key[:16]}... (Total misses: {self.misses})")
+
+                # Track cache miss in MongoDB (async, non-blocking)
+                if user_id:
+                    asyncio.create_task(self._track_cache_event(user_id, "miss"))
+
                 return None
 
         except Exception as e:
             print(f"⚠️ Cache get error: {e}")
             return None
+
+    async def _track_cache_event(self, user_id: str, event_type: str):
+        """
+        Track cache hit/miss in MongoDB for analytics
+        Non-blocking background task
+
+        Args:
+            user_id: User ID
+            event_type: "hit" or "miss"
+        """
+        try:
+            from services.mongodb_service import mongodb_service
+
+            # Increment cache stats in user document
+            await mongodb_service.db.users.update_one(
+                {"user_id": user_id},
+                {
+                    "$inc": {
+                        f"cache_stats.{event_type}s": 1,
+                        "cache_stats.total": 1
+                    },
+                    "$set": {
+                        "cache_stats.last_updated": mongodb_service.get_current_timestamp()
+                    }
+                },
+                upsert=True
+            )
+        except Exception as e:
+            # Silent fail - don't interrupt main flow
+            print(f"⚠️ Cache stats tracking error: {e}")
 
     async def set(
         self,

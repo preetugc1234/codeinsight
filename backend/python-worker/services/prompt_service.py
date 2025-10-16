@@ -209,8 +209,8 @@ class PromptService:
         """
         if not self.brain_data:
             default_ttls = {
-                "code_review": 86400,   # 24 hours
-                "debug": 3600,          # 1 hour
+                "code_review": 604800,  # 7 days (increased from 24h for better cache reuse)
+                "debug": 86400,         # 24 hours (increased from 1h)
                 "architecture": 604800  # 7 days
             }
             return default_ttls.get(request_type, 3600)
