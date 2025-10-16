@@ -16,6 +16,10 @@ from services.queue_service import queue_service
 from services.review_pipeline import review_pipeline
 from services.websocket_service import websocket_manager
 
+# Import API routers
+from api.auth import router as auth_router
+from api.api_keys import router as api_keys_router
+
 load_dotenv()
 
 # Background task for job queue consumer
@@ -96,6 +100,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register API routers
+app.include_router(auth_router)
+app.include_router(api_keys_router)
 
 # Models
 class ReviewRequest(BaseModel):

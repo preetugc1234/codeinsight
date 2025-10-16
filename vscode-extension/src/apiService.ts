@@ -148,8 +148,20 @@ export class ApiService {
             return false;
         }
 
-        // Skip validation for now - just check if key exists
-        // TODO: Implement /whoami endpoint or /api/keys/validate
-        return this.apiKey.length > 10;
+        try {
+            // Call /api/auth/whoami to validate the API key
+            const response = await this.client.get('/api/auth/whoami', {
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`
+                }
+            });
+
+            // Check if authentication is successful
+            return response.data?.is_authenticated === true;
+        } catch (error: any) {
+            // If validation fails, return false
+            console.error('API key validation failed:', error.response?.data || error.message);
+            return false;
+        }
     }
 }
