@@ -3,7 +3,6 @@ package com.codeinsight.api;
 import com.codeinsight.model.Job;
 import com.codeinsight.model.User;
 import com.codeinsight.repository.JobRepository;
-import com.codeinsight.service.JWTService;
 import com.codeinsight.service.UserService;
 import com.codeinsight.service.RedisService;
 import jakarta.inject.Inject;
@@ -25,9 +24,6 @@ public class ReviewResource {
     JobRepository jobRepository;
 
     @Inject
-    JWTService jwtService;
-
-    @Inject
     UserService userService;
 
     @Inject
@@ -47,9 +43,12 @@ public class ReviewResource {
                         .build();
             }
 
-            // Validate JWT and extract user ID
-            String userId = jwtService.validateTokenAndGetUserId(authHeader);
-            String email = jwtService.extractEmail(authHeader);
+            // Extract user ID from auth header (no validation - proxy only)
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                throw new Exception("Missing authorization header");
+            }
+            String userId = authHeader.replace("Bearer ", "").trim();
+            String email = "user@example.com"; // Placeholder
 
             // Get or create user
             User user = userService.getOrCreateUser(userId, email, "lite");
@@ -135,8 +134,11 @@ public class ReviewResource {
             @PathParam("jobId") String jobId
     ) {
         try {
-            // Validate JWT
-            String userId = jwtService.validateTokenAndGetUserId(authHeader);
+            // Extract user ID (no validation)
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                throw new Exception("Missing authorization header");
+            }
+            String userId = authHeader.replace("Bearer ", "").trim();
 
             // Find job
             Job job = jobRepository.findByJobId(jobId);
