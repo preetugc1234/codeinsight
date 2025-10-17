@@ -1,7 +1,6 @@
 package com.codeinsight.api;
 
 import com.codeinsight.model.User;
-import com.codeinsight.service.JWTService;
 import com.codeinsight.service.UserService;
 import com.codeinsight.service.RedisService;
 import jakarta.inject.Inject;
@@ -18,9 +17,6 @@ import java.util.Map;
 public class UserResource {
 
     @Inject
-    JWTService jwtService;
-
-    @Inject
     UserService userService;
 
     @Inject
@@ -30,9 +26,12 @@ public class UserResource {
     @Path("/whoami")
     public Response whoami(@HeaderParam("Authorization") String authHeader) {
         try {
-            // Validate JWT and extract user ID
-            String userId = jwtService.validateTokenAndGetUserId(authHeader);
-            String email = jwtService.extractEmail(authHeader);
+            // Extract user ID (no validation)
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                throw new Exception("Missing authorization header");
+            }
+            String userId = authHeader.replace("Bearer ", "").trim();
+            String email = "user@example.com"; // Placeholder
 
             // Get or create user in MongoDB
             User user = userService.getOrCreateUser(userId, email, "lite");
@@ -80,7 +79,10 @@ public class UserResource {
             Map<String, String> body
     ) {
         try {
-            String userId = jwtService.validateTokenAndGetUserId(authHeader);
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                throw new Exception("Missing authorization header");
+            }
+            String userId = authHeader.replace("Bearer ", "").trim();
             String newPlan = body.get("plan");
 
             if (newPlan == null || (!newPlan.equals("lite") && !newPlan.equals("pro") && !newPlan.equals("business"))) {
