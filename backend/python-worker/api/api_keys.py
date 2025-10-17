@@ -36,16 +36,23 @@ async def generate_api_key(
     try:
         # Extract user from auth header (Supabase JWT)
         if not authorization or not authorization.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            raise HTTPException(status_code=401, detail="Unauthorized: Missing authorization header")
 
         token = authorization.replace("Bearer ", "")
 
         # Verify token with Supabase
-        user = supabase_service.client.auth.get_user(token)
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        try:
+            user_response = supabase_service.client.auth.get_user(token)
+            if not user_response or not user_response.user:
+                raise HTTPException(status_code=401, detail="Invalid token: User not found")
 
-        user_id = user.user.id
+            user_id = user_response.user.id
+        except Exception as auth_error:
+            print(f"❌ Supabase auth error: {auth_error}")
+            raise HTTPException(
+                status_code=401,
+                detail=f"Invalid or expired Supabase JWT token. Please login again. Error: {str(auth_error)}"
+            )
 
         # Generate new API key
         result = await api_key_service.create_api_key(user_id)
@@ -121,16 +128,23 @@ async def get_api_key_info(
     try:
         # Extract user from auth header
         if not authorization or not authorization.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            raise HTTPException(status_code=401, detail="Unauthorized: Missing authorization header")
 
         token = authorization.replace("Bearer ", "")
 
         # Verify token with Supabase
-        user = supabase_service.client.auth.get_user(token)
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        try:
+            user_response = supabase_service.client.auth.get_user(token)
+            if not user_response or not user_response.user:
+                raise HTTPException(status_code=401, detail="Invalid token: User not found")
 
-        user_id = user.user.id
+            user_id = user_response.user.id
+        except Exception as auth_error:
+            print(f"❌ Supabase auth error: {auth_error}")
+            raise HTTPException(
+                status_code=401,
+                detail=f"Invalid or expired Supabase JWT token. Please login again."
+            )
 
         # Get key info
         result = await api_key_service.get_user_api_key_info(user_id)
@@ -160,16 +174,23 @@ async def revoke_api_key(
     try:
         # Extract user from auth header
         if not authorization or not authorization.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="Unauthorized")
+            raise HTTPException(status_code=401, detail="Unauthorized: Missing authorization header")
 
         token = authorization.replace("Bearer ", "")
 
         # Verify token with Supabase
-        user = supabase_service.client.auth.get_user(token)
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        try:
+            user_response = supabase_service.client.auth.get_user(token)
+            if not user_response or not user_response.user:
+                raise HTTPException(status_code=401, detail="Invalid token: User not found")
 
-        user_id = user.user.id
+            user_id = user_response.user.id
+        except Exception as auth_error:
+            print(f"❌ Supabase auth error: {auth_error}")
+            raise HTTPException(
+                status_code=401,
+                detail=f"Invalid or expired Supabase JWT token. Please login again."
+            )
 
         # Revoke key
         success = await api_key_service.revoke_api_key(user_id)
