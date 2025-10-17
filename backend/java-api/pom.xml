@@ -54,7 +54,8 @@
       <artifactId>quarkus-redis-client</artifactId>
     </dependency>
 
-    <!-- JWT Auth -->
+    <!-- JWT Auth - COMMENTED OUT (Python worker handles auth) -->
+    <!--
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-jwt</artifactId>
@@ -69,6 +70,7 @@
       <artifactId>jwks-rsa</artifactId>
       <version>0.22.1</version>
     </dependency>
+    -->
 
     <!-- WebSocket -->
     <dependency>

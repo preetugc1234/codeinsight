@@ -13,7 +13,11 @@
       "Bash(npm run package:*)",
       "Bash(npx vsce login code-insight)",
       "Bash(python:*)",
-      "Bash(npx vsce package)"
+      "Bash(npx vsce package)",
+      "Bash(npx vsce publish)",
+      "Bash(curl -i https://codeinsight-java-api.onrender.com/health)",
+      "Bash(curl -i https://codeinsight-python-worker.onrender.com/health)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []
