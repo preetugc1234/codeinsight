@@ -1,6 +1,7 @@
 package com.codeinsight.api;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
@@ -14,10 +15,14 @@ import java.time.Duration;
 /**
  * Proxy for /api/keys/* and /api/auth/* endpoints
  * Forwards requests to Python worker for API key management and authentication
+ *
+ * @PermitAll allows these endpoints to bypass JWT validation
+ * The Python worker will handle authentication
  */
 @Path("/api")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@PermitAll
 public class ApiKeysProxyResource {
 
     @ConfigProperty(name = "app.python-worker.url")
